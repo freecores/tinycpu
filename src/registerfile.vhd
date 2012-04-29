@@ -6,11 +6,13 @@ use ieee.std_logic_unsigned.all;
 entity registerfile is
   port(
     Write:in std_logic_vector(7 downto 0); --what should be put into the write register
-    SelRead:in std_logic_vector(2 downto 0); --select which register to read
+    SelRead1:in std_logic_vector(2 downto 0); --select which register to read
+    SelRead2: in std_logic_vector(2 downto 0); --select second register to read
     SelWrite:in std_logic_vector(2 downto 0); --select which register to write
     UseWrite:in std_logic; --if the register should actually be written to
     Clock:in std_logic;
-    Read:out std_logic_vector(7 downto 0) --register to be read output
+    Read1:out std_logic_vector(7 downto 0); --register to be read output
+    Read2:out std_logic_vector(7 downto 0) --register to be read on second output 
   );
 end registerfile;
 
@@ -26,5 +28,6 @@ begin
       end if;
     end if;
   end process;
-  Read <= registers(conv_integer(SelRead));
+  Read1 <= registers(conv_integer(SelRead1));
+  Read2 <= registers(conv_integer(SelRead2));
 end Behavioral;

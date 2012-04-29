@@ -12,23 +12,27 @@ ARCHITECTURE behavior OF registerfile_tb IS
   component registerfile
     port(
       Write:in std_logic_vector(7 downto 0); --what should be put into the write register
-      SelRead:in std_logic_vector(2 downto 0); --select which register to read
+      SelRead1:in std_logic_vector(2 downto 0); --select which register to read
+      SelRead2: in std_logic_vector(2 downto 0); --select second register to read
       SelWrite:in std_logic_vector(2 downto 0); --select which register to write
       UseWrite:in std_logic; --if the register should actually be written to
       Clock:in std_logic;
-      Read:out std_logic_vector(7 downto 0) --register to be read output
+      Read1:out std_logic_vector(7 downto 0); --register to be read output
+      Read2:out std_logic_vector(7 downto 0) --register to be read on second output 
     );
   end component;
     
 
   --Inputs
   signal Write : std_logic_vector(7 downto 0) := (others => '0');
-  signal SelRead: std_logic_vector(2 downto 0) := (others => '0');
+  signal SelRead1: std_logic_vector(2 downto 0) := (others => '0');
+  signal SelRead2: std_logic_vector(2 downto 0) := (others => '0');
   signal SelWrite: std_logic_vector(2 downto 0) := (others => '0');
   signal UseWrite: std_logic := '0';
 
   --Outputs
-  signal Read : std_logic_vector(7 downto 0);
+  signal Read1 : std_logic_vector(7 downto 0);
+  signal Read2 : std_logic_vector(7 downto 0);
 
   signal Clock: std_logic;
   constant clock_period : time := 10 ns;
@@ -38,11 +42,13 @@ BEGIN
   -- Instantiate the Unit Under Test (UUT)
   uut: registerfile PORT MAP (
     Write => Write,
-    SelRead => SelRead,
+    SelRead1 => SelRead1,
+    SelRead2 => SelRead2,
     SelWrite => SelWrite,
     UseWrite => UseWrite,
     Clock => Clock,
-    Read => Read
+    Read1 => Read1,
+    Read2 => Read2
   );
 
   -- Clock process definitions
@@ -69,11 +75,11 @@ BEGIN
     Write <= "11110000";
     UseWrite <= '1';
     wait for 10 ns;
-    SelRead <= "000";
+    SelRead1 <= "000";
     UseWrite <= '0';
     wait for 10 ns;
-    assert (Read="11110000") report "Storage error case 1" severity error;
-    if (Read/="11110000") then
+    assert (Read1="11110000") report "Storage error case 1" severity error;
+    if (Read1/="11110000") then
 	err_cnt:=err_cnt+1;
     end if;
 
@@ -82,20 +88,20 @@ BEGIN
     Write <= "11110001";
     UseWrite <= '1';
     wait for 10 ns;
-    SelRead <= "100";
+    SelRead1 <= "100";
     UseWrite <= '0';
     wait for 10 ns;
-    assert (Read="11110001") report "Storage selector error case 2" severity error;
-    if (Read/="11110001") then
+    assert (Read1="11110001") report "Storage selector error case 2" severity error;
+    if (Read1/="11110001") then
 	err_cnt:=err_cnt+1;
     end if;
 
     -- case 3
-    SelRead <= "000";
+    SelRead1 <= "000";
     UseWrite <= '0';
     wait for 10 ns;
-    assert (Read="11110000") report "Storage selector(remembering) error case 3" severity error;
-    if (Read/="11110000") then
+    assert (Read1="11110000") report "Storage selector(remembering) error case 3" severity error;
+    if (Read1/="11110000") then
 	err_cnt:=err_cnt+1;
     end if;
 

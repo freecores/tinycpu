@@ -1,0 +1,59 @@
+This is the design of TinyCPU. It's goals are as follows:
+
+1. 8-bit registers and operations (8 bit processor)
+2. 16-bit address bus
+3. fixed 16-bit instruction length
+4. use a small amount of "rich" instructions to do powerful things
+5. 1 instruction per clock cycle
+
+Register list:
+r0-r2 general purpose registers
+ip instruction pointer register (represented as r3)
+cs, ds, es, ss segment registers (code segment, data segment, extra segment, stack segment)
+tr truth register for conditionals
+
+general opcode format
+
+first byte:
+first 4 bits: actual instruction
+next 2 bits: (target) register
+last 2 bits: conditional
+
+second byte:
+first 1 bit: use segment registers
+next 1 bit: exchange target and source register
+next 2 bits: other register
+next 1 bit: dereference first register for memory (respecting the "exchange" bit)
+next 3 bits: extra opcode information(optional) or last two bits is third register (such as for ADD it could be target=source+third_register)
+
+...or second byte is immediate value
+
+For opcodes requiring 3 registers but without room, the target opcode is assume to be the second operation. Such as for AND, target=source AND target
+
+short list of instructions: (not final, still planning)
+0 -nop (doesn't do a thing)
+1 -move immediate (only uses first byte)
+2 -move
+3 -push
+4 -push immediate
+5 -push and move (or call when acting on ip)
+6 -compare (is less than, is less than or equal, is greater than, is greater than or equal, is equal, is not equal) (6 conditions room for 2 more in extra)
+7 -add
+8 -subtract
+9 -bitwise operations (xor, or, and, shift right, shift left, not)
+
+x -multiply (if room)
+x -divide
+
+
+conditionals
+00 -- always
+01 -- if true
+10 -- if false
+11 -- reserved/not used
+
+push
+pop
+move
+add
+sub
