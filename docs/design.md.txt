@@ -7,8 +7,8 @@ This is the design of TinyCPU. It's goals are as follows:
 5. 1 instruction per clock cycle
 
 Register list:
-r0-r2 general purpose registers
-ip instruction pointer register (represented as r3)
+r0-r6 general purpose registers
+ip instruction pointer register (represented as r7)
 cs, ds, es, ss segment registers (code segment, data segment, extra segment, stack segment)
 tr truth register for conditionals
 
@@ -16,21 +16,62 @@ general opcode format
 
 first byte:
 first 4 bits: actual instruction
-next 2 bits: (target) register
-last 2 bits: conditional
+next 3 bits: (target) register
+last 1 bit: conditional
 
-second byte:
-first 1 bit: use segment registers
-next 1 bit: exchange target and source register
-next 2 bits: other register
-next 1 bit: dereference first register for memory (respecting the "exchange" bit)
-next 3 bits: extra opcode information(optional) or last two bits is third register (such as for ADD it could be target=source+third_register)
+second byte: 
+first 1 bit: second portion of condition (if not immediate) (1 for only if false)
+next 1 bit: unused
+next 3 bits: other register
+last 3 bits: extra opcode information or third register. such as for ADD it could be target=source+third_register
 
 ...or second byte is immediate value
 
 For opcodes requiring 3 registers but without room, the target opcode is assume to be the second operation. Such as for AND, target=source AND target
 
 short list of instructions: (not final, still planning)
+immediates:
+1. move reg, immediate
+2. move [reg], immediate
+3. push and move reg, immediate (or call immediate)
+4. push immediate
+
+groups: (limited to 2 registers and no immediates. each group has 8 opcodes)
+group 1:
+move(store) [reg],reg
+move(load) reg,[reg]
+out reg1,reg2 (output to port reg1 value reg2)
+in reg1,reg2 (input from port reg2 and store in reg1)
+
+
+group 2:
+and reg1,reg2 (reg1=reg1 and reg2)
+or reg, reg
+xor reg,reg
+not reg1,reg2 (reg1=not reg2)
+left shift reg,reg
+right shift reg,reg
+rotate right reg,reg
+rotate left reg,reg
+
+group 3: compares
+is greater than reg1,reg2 (TR=reg1>reg2)
+is greater or equal to reg,reg
+is less than reg,reg
+is less than or equal to reg,reg
+is equal to reg,reg
+is not equal to reg,reg
+
+
+
+
+3 register instructions:
+1. add reg1, reg2, reg3 (reg1=reg2+reg3)
+2. sub reg1, reg2, reg3
+
+
+
+
 0 -nop (doesn't do a thing)
 1 -move immediate (only uses first byte)
 2 -move
@@ -47,10 +88,9 @@ x -divide
 
 
 conditionals
-00 -- always
-01 -- if true
-10 -- if false
-11 -- reserved/not used
+0 -- always
+1 -- only if true
+for only if false, there should basically be another compare or if applicable an always afterwards
 
 push
 pop
