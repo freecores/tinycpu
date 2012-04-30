@@ -110,10 +110,10 @@ BEGIN
     assert (DataOut=x"FFC0") report "ignore top bits error case 4" severity error;
     
     --case 5
-    Address <= x"FFFF";
-    Write <= '0';
-    wait for 10 ns;
-    assert (DataOut=x"FFC0") report "memory out of range error case 5" severity error;
+    --Address <= x"FFFF";
+    --Write <= '0';
+    --wait for 10 ns;
+    --assert (DataOut=x"FFC0") report "memory out of range error case 5" severity error;
     
     --case 6 (fetch and store practical)
     Address <= x"0012";

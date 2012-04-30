@@ -26,41 +26,36 @@ entity memory is
 end memory;
 
 architecture Behavioral of memory is
-  constant SIZE : integer := 4096;
-  type memorytype is array(0 to (size-1)) of std_logic_vector(7 downto 0);
+  constant BUSSIZE : integer := 8;
+  type memorytype is array(0 to integer((2**BUSSIZE))) of std_logic_vector(7 downto 0);
   signal mem: memorytype;
-  
 begin
 
   writemem: process(Reset,Write, Address, UseTopBits, Clock)
-    variable addr: integer;
+    variable addr: integer range 0 to (2**BUSSIZE)-1 := 0;
   begin
-    addr := conv_integer(Address);
-    if(addr>size-1) then
-      addr:=0;
-    end if;
+    addr := conv_integer(Address(BUSSIZE-1 downto 0));
     if(rising_edge(Clock)) then
       if(Reset ='1') then
-        mem <= (others => "00000000");
+        --mem <= (others => "00000000");
       elsif( Write='1') then
-        mem(conv_integer(addr)) <= DataIn(7 downto 0);
+        mem(addr) <= DataIn(7 downto 0);
         if(UseTopBits='1') then
-          mem(conv_integer(addr)+1) <= DataIn(15 downto 8);
+          mem(addr+1) <= DataIn(15 downto 8);
         end if;
       end if;
     end if;
   end process;
   readmem: process(Reset,Address,Write,Clock)
-    variable addr: integer;
+    variable addr: integer range 0 to (2**BUSSIZE)-1 := 0;
+    variable addr2: integer range 0 to (2**BUSSIZE)-1 := 0; -- for second part
   begin
-    addr := conv_integer(Address);
-    if(addr>size-1) then
-      addr:=0;
-    end if;
+    addr := conv_integer(Address(BUSSIZE-1 downto 0));
+    addr2 := conv_integer(Address(BUSSIZE-1 downto 0));
     if(Reset='1') then
       DataOut <= (others => '0');
     elsif(Write='0') then
-      DataOut <= mem(conv_integer(addr)+1) & mem(conv_integer(addr));
+      DataOut <= mem(addr+1) & mem(addr);
     else 
       DataOut <= (others => '0');
     end if;
