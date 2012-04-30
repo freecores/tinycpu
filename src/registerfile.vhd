@@ -5,11 +5,14 @@ use ieee.std_logic_unsigned.all;
 
 entity registerfile is
   port(
-    Write:in std_logic_vector(7 downto 0); --what should be put into the write register
-    SelRead1:in std_logic_vector(2 downto 0); --select which register to read
-    SelRead2: in std_logic_vector(2 downto 0); --select second register to read
-    SelWrite:in std_logic_vector(2 downto 0); --select which register to write
-    UseWrite:in std_logic; --if the register should actually be written to
+    Write1:in std_logic_vector(7 downto 0); --what should be put into the write register
+    Write2: in std_logic_vector(7 downto 0); 
+    SelRead1:in std_logic_vector(3 downto 0); --select which register to read
+    SelRead2: in std_logic_vector(3 downto 0); --select second register to read
+    SelWrite1:in std_logic_vector(3 downto 0); --select which register to write
+    SelWrite2:in std_logic_vector(3 downto 0); 
+    UseWrite1:in std_logic; --if the register should actually be written to
+    UseWrite2: in std_logic;
     Clock:in std_logic;
     Read1:out std_logic_vector(7 downto 0); --register to be read output
     Read2:out std_logic_vector(7 downto 0) --register to be read on second output 
@@ -17,14 +20,19 @@ entity registerfile is
 end registerfile;
 
 architecture Behavioral of registerfile is
-  type registerstype is array(0 to 7) of std_logic_vector(7 downto 0);
+  type registerstype is array(0 to 15) of std_logic_vector(7 downto 0);
   signal registers: registerstype;
 begin
-  writereg: process(Write, SelWrite, UseWrite, Clock)
+  writereg: process(Write1, Write2, SelWrite1, SelWrite2, UseWrite1, UseWrite2, Clock)
   begin
-    if(UseWrite='1') then
+    if(UseWrite1='1') then
       if(rising_edge(clock)) then
-	registers(conv_integer(SelWrite)) <= Write;
+	registers(conv_integer(SelWrite1)) <= Write1;
+      end if;
+    end if;
+    if(UseWrite2='1') then
+      if(rising_edge(clock) and conv_integer(SelWrite1)/=conv_integer(SelWrite2)) then
+        registers(conv_integer(SelWrite2)) <= Write2;
       end if;
     end if;
   end process;

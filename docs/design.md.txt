@@ -7,7 +7,8 @@ This is the design of TinyCPU. It's goals are as follows:
 5. 1 instruction per clock cycle
 
 Register list:
-r0-r6 general purpose registers
+r0-r5 general purpose registers
+sp stack pointer (represented as r6)
 ip instruction pointer register (represented as r7)
 cs, ds, es, ss segment registers (code segment, data segment, extra segment, stack segment)
 tr truth register for conditionals
@@ -21,7 +22,7 @@ last 1 bit: conditional
 
 second byte: 
 first 1 bit: second portion of condition (if not immediate) (1 for only if false)
-next 1 bit: unused
+next 1 bit: use extra segment
 next 3 bits: other register
 last 3 bits: extra opcode information or third register. such as for ADD it could be target=source+third_register
 
@@ -35,6 +36,7 @@ immediates:
 2. move [reg], immediate
 3. push and move reg, immediate (or call immediate)
 4. push immediate
+5. jmp immediate
 
 groups: (limited to 2 registers and no immediates. each group has 8 opcodes)
 group 1:
@@ -42,7 +44,10 @@ move(store) [reg],reg
 move(load) reg,[reg]
 out reg1,reg2 (output to port reg1 value reg2)
 in reg1,reg2 (input from port reg2 and store in reg1)
-
+pop reg
+push reg
+move segmentreg,reg
+move reg,segmentreg
 
 group 2:
 and reg1,reg2 (reg1=reg1 and reg2)
@@ -61,7 +66,27 @@ is less than reg,reg
 is less than or equal to reg,reg
 is equal to reg,reg
 is not equal to reg,reg
+equals 0 reg
+not equals 0 reg
 
+group 4:
+push segmentreg
+pop segmentreg
+push and move reg, reg (or call reg) 
+exchange reg,reg
+exchange reg,seg
+clear TR
+Set TR
+
+group 5:
+increment reg
+decrement reg
+far jmp reg1, reg2 (CS=reg1 and IP=reg2)
+far call reg1,reg2
+far jmp [reg] (first byte is CS, second byte is IP)
+push extended segmentreg, reg (equivalent to push seg; push reg)
+pop extended segmentreg, reg (equivalent to pop reg; pop seg)
+reset processor (will completely reset the processor to starting state, but not RAM or anything else)
 
 
 
@@ -69,6 +94,8 @@ is not equal to reg,reg
 1. add reg1, reg2, reg3 (reg1=reg2+reg3)
 2. sub reg1, reg2, reg3
 
+
+opcodes used: 12 of 16. 4 more opcodes available. Decide what to do with the room later.
 
 
 
@@ -97,3 +124,16 @@ pop
 move
 add
 sub
+
+limitations that shouldn't be passed with instructions
+* Doing 2 memory references 
+* pushing a memory reference (equates to 2 memory references)
+
+Note it is possible however to read and write 16bits at one time to the memory to consecutive addresses. 
+
+
+segments:
+DS is used in all "normal" memory references
+SS is used in all push and pop instructions
+ES is used when the ExtraSegment bit is set for either push/pop or normal memory references
+CS is only used for fetching instructions
