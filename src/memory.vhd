@@ -1,8 +1,17 @@
+--RAM module
+--4096*8 bit file
+--simultaneous write/read support
+--16 bit or 8 bit data bus
+--16 bit address bus
+--On Reset, will load a "default" RAM image
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use ieee.std_logic_arith.all;
 use IEEE.NUMERIC_STD.ALL;
 use ieee.std_logic_unsigned.all; 
+
+
 
 entity memory is
   port(
@@ -30,10 +39,10 @@ begin
     if(addr>size-1) then
       addr:=0;
     end if;
-    if(Reset ='1' and rising_edge(Clock)) then
-      mem <= (others => "00000000");
-    elsif(Write='1' and Reset='0') then
-      if(rising_edge(clock)) then
+    if(rising_edge(Clock)) then
+      if(Reset ='1') then
+        mem <= (others => "00000000");
+      elsif( Write='1') then
         mem(conv_integer(addr)) <= DataIn(7 downto 0);
         if(UseTopBits='1') then
           mem(conv_integer(addr)+1) <= DataIn(15 downto 8);

@@ -1,3 +1,7 @@
+--registerfile module
+--16 registers, dual port for both read and write
+--8 bit registers
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
