@@ -11,8 +11,8 @@ ARCHITECTURE behavior OF blockram_tb IS
  
   component blockram
     port(
-      Address: in std_logic_vector(7 downto 0); --memory address
-      WriteEnable: in std_logic; --write or read
+      Address: in std_logic_vector(11 downto 0); --memory address
+      WriteEnable: in std_logic_vector(1 downto 0); --write or read
       Enable: in std_logic; 
       Clock: in std_logic;
       DataIn: in std_logic_vector(15 downto 0);
@@ -22,8 +22,8 @@ ARCHITECTURE behavior OF blockram_tb IS
     
 
   --Inputs
-  signal Address: std_logic_vector(7 downto 0) := (others => '0');
-  signal WriteEnable: std_logic := '0';
+  signal Address: std_logic_vector(11 downto 0) := (others => '0');
+  signal WriteEnable: std_logic_vector(1 downto 0) := (others => '0');
   signal DataIn: std_logic_vector(15 downto 0) := (others => '0');
   signal Enable: std_logic := '0';
 
@@ -66,27 +66,32 @@ BEGIN
     wait for clock_period*10;
     
     --case 1
-    WriteEnable <= '0';
+    WriteEnable(0) <= '0';
+    WriteEnable(1) <= '0';
     wait for 10 ns;
-    Address <= x"01";
+    Address <= x"001";
     DataIn <= "1000000000001000";
-    WriteEnable <= '1';
+    WriteEnable(0) <= '1';
+    WriteEnable(1) <= '1';
     wait for 10 ns;
-    WriteEnable <= '0';
+    WriteEnable(0) <= '0';
+    WriteEnable(1) <= '0';
     wait for 10 ns;
     assert (DataOut="1000000000001000") report "Storage error case 1" severity error;
 
      --case 2
-    Address <= x"33";
+    Address <= x"033";
     DataIn <= "1000000000001100";
-    WriteEnable <= '1';
+    WriteEnable(0) <= '1';
+    WriteEnable(1) <= '1';
     wait for 10 ns;
-    WriteEnable <= '0';
+    WriteEnable(0) <= '0';
+    WriteEnable(1) <= '0';
     wait for 10 ns;
     assert (DataOut="1000000000001100") report "memory selection error case 2" severity error;
 
     -- case 3
-    Address <= x"01";
+    Address <= x"001";
     wait for 10 ns;
     assert (DataOut="1000000000001000") report "memory retention error case 3" severity error;
     
