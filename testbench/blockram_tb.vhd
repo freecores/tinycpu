@@ -95,6 +95,18 @@ BEGIN
     wait for 10 ns;
     assert (DataOut="1000000000001000") report "memory retention error case 3" severity error;
     
+    --case 4 (byte-wide test)
+    Address <= x"11";
+    WriteEnable(0) <= '1';
+    WriteEnable(1) <= '1';
+    DataIn <= x"932F";
+    wait for 10 ns;
+    WriteEnable(1) <= '0';
+    DataIn <= x"165A";
+    wait for 10 ns;
+    WriteEnable(0) <= '0';
+    wait for 10 ns;
+    assert (DataOut=x"935A") report "byte-wide write error case 4" severity error;
     
     --case 5
     --Address <= x"FFFF";

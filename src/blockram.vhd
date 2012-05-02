@@ -11,19 +11,6 @@ use ieee.std_logic_arith.all;
 use IEEE.NUMERIC_STD.ALL;
 use ieee.std_logic_unsigned.all; 
 
-            --if WriteEnable(0) = '1' then
-              --          di0 <= DataIn(7 downto 0);
-               -- else
-                        --di0 := RAM(conv_integer(Address))(7 downto 0);
-               --         di0 <= do(7 downto 0);
-                --end if;
-                --if WriteEnable(1) = '1' then
-                    --    di1 <= DataIn(15 downto 8);
-                --else
-                        --di1 <= RAM(conv_integer(Address))(15 downto 8);
-                  --      di1 <= do(15 downto 8);
-                --end if;
-
 entity blockram is
   port(
     Address: in std_logic_vector(7 downto 0); --memory address
@@ -36,8 +23,9 @@ entity blockram is
 end blockram;
 
 architecture Behavioral of blockram is
-    type ram_type is array (255 downto 0) of std_logic_vector (15 downto 0);
-    signal RAM: ram_type;
+    type ram_type is array (255 downto 0) of std_logic_vector (7 downto 0);
+    signal RAM0: ram_type; --Spartan 3Es don't natively support byte-wide write enables, so we'll just emulate it with 2 banks of RAM
+    signal RAM1: ram_type;
     signal di0, di1: std_logic_vector(7 downto 0);
     signal do : std_logic_vector(15 downto 0);
 begin
@@ -47,10 +35,15 @@ begin
   begin
     if rising_edge(Clock) then
       if Enable = '1' then
-        if WriteEnable(0)='1' or WriteEnable(1)='1' then
-          RAM(conv_integer(Address)) <= di1 & di0;
+        if WriteEnable(0)='1' then
+          RAM0(conv_integer(Address)) <= di0;
         else
-          do <= RAM(conv_integer(Address)) ;
+          do(7 downto 0) <= RAM0(conv_integer(Address)) ;
+        end if;
+        if WriteEnable(1)='1' then
+          RAM1(conv_integer(Address)) <= di1;
+        else
+          do(15 downto 8) <= RAM1(conv_integer(Address));
         end if;
       end if;
     end if;
