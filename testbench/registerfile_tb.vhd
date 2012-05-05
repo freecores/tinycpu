@@ -1,7 +1,8 @@
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
- 
+use work.tinycpu.all;
+
 ENTITY registerfile_tb IS
 END registerfile_tb;
  
@@ -10,35 +11,21 @@ ARCHITECTURE behavior OF registerfile_tb IS
 -- Component Declaration for the Unit Under Test (UUT)
  
   component registerfile
-    port(
-      Write1:in std_logic_vector(7 downto 0); --what should be put into the write register
-      Write2: in std_logic_vector(7 downto 0); 
-      SelRead1:in std_logic_vector(3 downto 0); --select which register to read
-      SelRead2: in std_logic_vector(3 downto 0); --select second register to read
-      SelWrite1:in std_logic_vector(3 downto 0); --select which register to write
-      SelWrite2:in std_logic_vector(3 downto 0); 
-      UseWrite1:in std_logic; --if the register should actually be written to
-      UseWrite2: in std_logic;
-      Clock:in std_logic;
-      Read1:out std_logic_vector(7 downto 0); --register to be read output
-      Read2:out std_logic_vector(7 downto 0) --register to be read on second output 
+  port(
+    WriteEnable: in regwritetype;
+    DataIn: in regdatatype;
+    Clock: in std_logic;
+    DataOut: out regdatatype
   );
   end component;
     
 
   --Inputs
-  signal Write1 : std_logic_vector(7 downto 0) := (others => '0');
-  signal Write2 : std_logic_vector(7 downto 0) := (others => '0');
-  signal SelRead1: std_logic_vector(3 downto 0) := (others => '0');
-  signal SelRead2: std_logic_vector(3 downto 0) := (others => '0');
-  signal SelWrite1: std_logic_vector(3 downto 0) := (others => '0');
-  signal SelWrite2: std_logic_vector(3 downto 0) := (others => '0');
-  signal UseWrite1: std_logic := '0';
-  signal UseWrite2: std_logic := '0';
+  signal WriteEnable : regwritetype := (others => '0');
+  signal DataIn: regdatatype := (others => "00000000");
 
   --Outputs
-  signal Read1 : std_logic_vector(7 downto 0);
-  signal Read2 : std_logic_vector(7 downto 0);
+  signal DataOut: regdatatype := (others => "00000000");
 
   signal Clock: std_logic;
   constant clock_period : time := 10 ns;
@@ -47,17 +34,10 @@ BEGIN
 
   -- Instantiate the Unit Under Test (UUT)
   uut: registerfile PORT MAP (
-    Write1 => Write1,
-    Write2 => Write2,
-    SelRead1 => SelRead1,
-    SelRead2 => SelRead2,
-    SelWrite1 => SelWrite1,
-    SelWrite2 => SelWrite2,
-    UseWrite1 => UseWrite1,
-    UseWrite2 => UseWrite2,
+    WriteEnable => WriteEnable,
+    DataIn => DataIn,
     Clock => Clock,
-    Read1 => Read1,
-    Read2 => Read2
+    DataOut => DataOut
   );
 
   -- Clock process definitions
@@ -80,58 +60,37 @@ BEGIN
     wait for clock_period*10;
 
     -- case 1
-    SelWrite1 <= "0000";	
-    Write1 <= "11110000";
-    UseWrite1 <= '1';
+    WriteEnable(1) <= '1';
+    DataIn(1) <= "11110000";
     wait for 10 ns;
-    SelRead1 <= "0000";
-    UseWrite1 <= '0';
+    WriteEnable(1) <= '0';
     wait for 10 ns;
-    assert (Read1="11110000") report "Storage error case 1" severity error;
+    assert (DataOut(1)="11110000") report "Storage error case 1" severity error;
 
     -- case 2
-    SelWrite1 <= "1000";	
-    Write1 <= "11110001";
-    UseWrite1 <= '1';
+    WriteEnable(5) <= '1';
+    DataIn(5) <= "11110001";
     wait for 10 ns;
-    SelRead1 <= "1000";
-    UseWrite1 <= '0';
+    WriteEnable(5) <= '0';
     wait for 10 ns;
-    assert (Read1="11110001") report "Storage selector error case 2" severity error;
+    assert (DataOut(5)="11110001") report "Storage selector error case 2" severity error;
 
-    -- case 3
-    SelRead1 <= "0000";
-    UseWrite1 <= '0';
+    -- case 3;
     wait for 10 ns;
-    assert (Read1="11110000") report "Storage selector(remembering) error case 3" severity error;
+    assert (DataOut(1)="11110000") report "Storage selector(remembering) error case 3" severity error;
     
     --case 4
-    SelWrite1 <= x"0";
-    SelWrite2 <= x"1";
-    Write1 <= x"12";
-    Write2 <= x"34";
-    UseWrite1 <= '1';
-    UseWrite2 <= '1';
+    DataIn(0) <= x"12";
+    DataIn(1) <= x"34";
+    WriteEnable(0) <= '1';
+    WriteEnable(1) <= '1';
     wait for 10 ns;
-    UseWrite1 <= '0';
-    UseWrite2 <= '0';
-    SelRead1 <= x"0";
-    SelRead2 <= x"1";
+    DataIn(0) <= x"90";
+    WriteEnable(0) <= '0';
+    WriteEnable(1) <= '0';
     wait for 10 ns;
-    assert (Read1=x"12" and Read2=x"34") report "simultaneous write and read error case 4" severity error;
+    assert (DataOut(0)=x"12" and DataOut(1)=x"34") report "simultaneous write and read error case 4" severity error;
 
-    SelWrite1 <= x"0";
-    SelWrite2 <= x"0";
-    Write1 <= x"ff";
-    Write2 <= x"00";
-    UseWrite1 <= '1';
-    UseWrite2 <= '1';
-    wait for 10 ns;
-    SelRead1 <= x"0";
-    UseWrite1 <= '0';
-    UseWrite2 <= '0';
-    wait for 10 ns;
-    assert (Read1=x"ff") report "dual-write error handling error case 5" severity error;
 
 
 
