@@ -88,6 +88,11 @@ push extended segmentreg, reg (equivalent to push seg; push reg)
 pop extended segmentreg, reg (equivalent to pop reg; pop seg)
 reset processor (will completely reset the processor to starting state, but not RAM or anything else)
 
+group 6:
+set register bank 0
+set register bank 1
+push extended reg, reg
+pop extended reg,reg
 
 
 3 register instructions:
@@ -137,3 +142,68 @@ DS is used in all "normal" memory references
 SS is used in all push and pop instructions
 ES is used when the ExtraSegment bit is set for either push/pop or normal memory references
 CS is only used for fetching instructions
+
+
+States needed:
+0. reset
+1. decode current instruction (All without memory capable within 1 clock cycle)
+2. increment IP(and SP if needed) and fetch next instruction
+3. Write 1 register to memory
+4. Read 1 register from memory
+5. Write 2 registers to memory
+6. Read 2 registers from memory
+7. Write 1 register to memory and setup increment of sp
+8. Write 2 registers to memory and setup double increment of sp
+9. Read 1 register from memory and setup decrement of sp
+10. Read 2 registers from memory and setup double decrement of sp
+11. 
+
+
+
+registerfile map:
+0000: general r0
+0001: general r1
+0010: general r2
+0011: general r3
+0100: general r4
+0101: general r5
+0110: SP (r6)
+0111: IP (r7)
+1000: second bank r0
+1001: second bank r1
+1010: second bank r2
+1011: second bank r3
+1100: CS
+1101: DS
+1110: ES
+1111: SS
+
+Banking works like if(regnumber(2) = '0') then regnumber(3)=regbank; end if;
+
+
+ALU operations
+00000 and reg1,reg2 (reg1=reg1 and reg2)
+00001 or reg, reg
+00010 xor reg,reg
+00011 not reg1,reg2 (reg1=not reg2)
+00100 left shift reg,reg (logical)
+00101 right shift reg,reg (logical)
+00110 rotate right reg,reg
+00111 rotate left reg,reg
+
+01000 is greater than reg1,reg2 (TR=reg1>reg2)
+01001 is greater or equal to reg,reg
+01010 is less than reg,reg
+01011 is less than or equal to reg,reg
+01100 is equal to reg,reg
+01101 is not equal to reg,reg
+01110 equals 0 reg
+01111 not equals 0 reg
+
+10000 Set TR
+10001 Reset TR
+10011 Increment 
+10010 Decrement
+10100 Add
+10101 Subtract
+

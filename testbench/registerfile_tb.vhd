@@ -90,6 +90,14 @@ BEGIN
     WriteEnable(1) <= '0';
     wait for 10 ns;
     assert (DataOut(0)=x"12" and DataOut(1)=x"34") report "simultaneous write and read error case 4" severity error;
+    
+    --case 5
+    DataIn(0) <= x"55";
+    WriteEnable(0) <= '1';
+    wait for 10 ns;
+    DataIn(0) <= x"77";
+    assert (DataOut(0)=x"55") report "Write during read error case 5" severity error;
+    wait for 10 ns;
 
 
 
