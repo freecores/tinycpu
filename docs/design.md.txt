@@ -6,6 +6,16 @@ This is the design of TinyCPU. It's goals are as follows:
 4. use a small amount of "rich" instructions to do powerful things
 5. 1 instruction per clock cycle
 
+Relative moves:
+In order to provide uesfulness to the segment-carryover feature, there are a few options for moving a "relative" amount to a register, including IP and SP
+A relative move differs in most of the opcodes in that the relative factor is treated as a signed value. 
+so for instance, a 
+mov r0,50
+mov_relative r0, -10
+
+in the ned, r0 will end up being 40. Although this feature won't see much use in general registers, IP and SP are special because of the option of using the
+segment-carryover feature. This means that SP and IP, while being 8-bit registers, can function very similar to a 16-bit register, enabling full usage of the available address space.
+
 Register list:
 r0-r5 general purpose registers
 sp stack pointer (represented as r6)
@@ -23,7 +33,7 @@ last 1 bit: conditional
 second byte: 
 first 1 bit: second portion of condition (if not immediate) (1 for only if false)
 next 1 bit: use extra segment
-next 3 bits: other register
+next 3 bits: other register. If not 3rd register, top bit specifies which register bank, others unused
 last 3 bits: extra opcode information or third register. such as for ADD it could be target=source+third_register
 
 ...or second byte is immediate value
@@ -36,7 +46,8 @@ immediates:
 2. move [reg], immediate
 3. push and move reg, immediate (or call immediate)
 4. push immediate
-5. jmp immediate
+5. mov (relative) immediate
+
 
 groups: (limited to 2 registers and no immediates. each group has 8 opcodes)
 group 1:
@@ -89,11 +100,14 @@ pop extended segmentreg, reg (equivalent to pop reg; pop seg)
 reset processor (will completely reset the processor to starting state, but not RAM or anything else)
 
 group 6:
-set register bank 0
-set register bank 1
+set default register bank to 0 (can be condensed to 1 opcode)
+set default register bank to 1
 push extended reg, reg
 pop extended reg,reg
-
+enable carryover seg
+disable CS carryover seg
+mov relative reg, reg
+exchange reg, reg
 
 3 register instructions:
 1. add reg1, reg2, reg3 (reg1=reg2+reg3)
@@ -142,6 +156,11 @@ DS is used in all "normal" memory references
 SS is used in all push and pop instructions
 ES is used when the ExtraSegment bit is set for either push/pop or normal memory references
 CS is only used for fetching instructions
+
+Segment carryover:
+In order to overcome the limitations of only having a 256 byte segment, there is a workaround option to "pretend" that IP is a 16 bit register.
+When CS carryover is enabled, when IP rollover from 255 to 0 or whatever, CS will be incremented. This makes it so that if you start at address 0:0.
+you can continue as far as needed into the address space without having to do ugly far jumps at each of the borders.
 
 
 States needed:
