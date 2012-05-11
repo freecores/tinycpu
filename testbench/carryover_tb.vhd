@@ -92,7 +92,12 @@ BEGIN
     SegmentIn <= x"00";
     wait for 10 ns;
     assert (SegmentOut=x"01" and DataOut = x"02") report "Addition Carryover Error" severity error;
-
+    
+    DataIn <= x"7F";
+    Addend <= x"7F"; 
+    SegmentIn <= x"00";
+    wait for 10 ns;
+    assert (SegmentOut=x"00" and DataOut = x"FE") report "Carryover when not appropriate case 1" severity error;
 
     -- summary of testbench
     assert false

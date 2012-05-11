@@ -46,7 +46,7 @@ immediates:
 2. move [reg], immediate
 3. push and move reg, immediate (or call immediate)
 4. push immediate
-5. mov (relative) immediate
+5. move (relative) reg, immediate
 
 
 groups: (limited to 2 registers and no immediates. each group has 8 opcodes)
@@ -105,7 +105,7 @@ set default register bank to 1
 push extended reg, reg
 pop extended reg,reg
 enable carryover seg
-disable CS carryover seg
+disable carryover seg
 mov relative reg, reg
 exchange reg, reg
 
@@ -114,8 +114,16 @@ exchange reg, reg
 2. sub reg1, reg2, reg3
 
 
-opcodes used: 12 of 16. 4 more opcodes available. Decide what to do with the room later.
+opcodes used: 13 of 16. 3 more opcodes available. Decide what to do with the room later.
 
+Possible canidates for opcode compression include
+* Push immediate (room for 3 sub-opcodes)
+* push and pop reg (room for 7 sub-opcodes each)
+* equals 0 and not equals 0 (room for 7 sub-opcodes each)
+* Set TR and Reset TR (room for 64 opcodes each)
+* increment and decrement reg (room for 7 opcodes each)
+* enable and disable carry over (room for 7 opcodes each)
+* set register bank 0 and 1 (room for 64 opcodes each) 
 
 
 0 -nop (doesn't do a thing)
@@ -161,6 +169,12 @@ Segment carryover:
 In order to overcome the limitations of only having a 256 byte segment, there is a workaround option to "pretend" that IP is a 16 bit register.
 When CS carryover is enabled, when IP rollover from 255 to 0 or whatever, CS will be incremented. This makes it so that if you start at address 0:0.
 you can continue as far as needed into the address space without having to do ugly far jumps at each of the borders.
+Carryover can only be done on CS and SS. The required circuitry is not implemented for DS or ES due to an extreme level of complexity required for it, also
+it would only lead to unncessarily complex code 
+
+Also of note is that `move relative` implements a "carryover" component. This component will work on either IP or SP, and uses CS and SS respectively. 
+If used on other registers, there will be no carry over functionality, though it can be used as an easy way to add or subtract an immediate from a register. 
+
 
 
 States needed:
