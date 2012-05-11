@@ -11,23 +11,21 @@ ARCHITECTURE behavior OF memory_tb IS
  
   component memory
     port(
-      Address: in std_logic_vector(15 downto 0); --memory address
-      Write: in std_logic; --write or read
-      UseTopBits: in std_logic;  --if 1, top 8 bits of data is ignored and not written to memory
+      Address: in std_logic_vector(15 downto 0); --memory address (in bytes)
+      WriteWord: in std_logic; --if set, will write a full 16-bit word instead of a byte. Address must be aligned to 16-bit address. (bottom bit must be 0)
+      WriteEnable: in std_logic;
       Clock: in std_logic;
       DataIn: in std_logic_vector(15 downto 0);
-      DataOut: out std_logic_vector(15 downto 0);
-      Reset: in std_logic
+      DataOut: out std_logic_vector(15 downto 0)
     );
   end component;
     
 
   --Inputs
   signal Address: std_logic_vector(15 downto 0) := (others => '0');
-  signal Write: std_logic := '0';
-  signal UseTopBits: std_logic := '0';
+  signal WriteWord: std_logic := '0';
+  signal WriteEnable: std_logic := '0';
   signal DataIn: std_logic_vector(15 downto 0) := (others => '0');
-  signal Reset: std_logic := '0';
 
   --Outputs
   signal DataOut: std_logic_vector(15 downto 0);
@@ -40,12 +38,11 @@ BEGIN
   -- Instantiate the Unit Under Test (UUT)
   uut: memory PORT MAP (
     Address => Address,
-    Write => Write,
-    UseTopBits => UseTopBits,
+    WriteWord => WriteWord,
+    WriteEnable => WriteEnable,
     Clock => Clock,
     DataIn => DataIn,
-    DataOut => DataOut,
-    Reset => Reset
+    DataOut => DataOut
   );
 
   -- Clock process definitions
@@ -62,74 +59,60 @@ BEGIN
   stim_proc: process
     variable err_cnt: integer :=0;
   begin         
-    -- hold reset state for 100 ns.
-    Reset <= '1';
-    wait for 100 ns;    
+    wait for 50 ns;    
 
-    wait for clock_period*10;
     
-    --case 1
-    Reset <= '0';
-    Write <= '0';
-    wait for 10 ns;
-    Address <= "0000000000001000";
-    DataIn <= "1000000000001000";
-    Write <= '1';
-    UseTopBits <= '1';
-    wait for 10 ns;
-    Write <= '0';
-    wait for 10 ns;
-    assert (DataOut="1000000000001000") report "Storage error case 1" severity error;
-
-     --case 2
-    Address <= "0000000000001100";
-    DataIn <= "1000000000001100";
-    Write <= '1';
-    UseTopBits <= '1';
-    wait for 10 ns;
-    Write <= '0';
-    wait for 10 ns;
-    assert (DataOut="1000000000001100") report "memory selection error case 2" severity error;
-
-    -- case 3
-    Address <= "0000000000001000";
-    wait for 10 ns;
-    assert (DataOut="1000000000001000") report "memory retention error case 3" severity error;
-    
-    --case 4
     Address <= x"0000";
-    Write <= '1';
-    DataIn <= x"FFCC";
-    wait for 10 ns;
-    UseTopBits <= '0';
-    DataIn <= x"F0C0";
-    wait for 10 ns;
-    UseTopBits <='1';
-    Write <= '0';
-    wait for 10 ns;
-    assert (DataOut=x"FFC0") report "ignore top bits error case 4" severity error;
-    
-    --case 5
-    --Address <= x"FFFF";
-    --Write <= '0';
-    --wait for 10 ns;
-    --assert (DataOut=x"FFC0") report "memory out of range error case 5" severity error;
-    
-    --case 6 (fetch and store practical)
-    Address <= x"0012";
-    wait for 10 ns;
-    Address <= x"0000";
-    wait for 5 ns;
-    assert(DataOut=x"FFC0") report "practical fail 1" severity error;
-    Address <= x"00FF";
-    Write <= '1';
+    WriteWord <= '1';
+    WriteEnable <='1';
     DataIn <= x"1234";
-    wait for 5 ns;
-    Write <= '0';
     wait for 10 ns;
-    assert(DataOut=x"1234") report "practical fail 2" severity error;
-
-
+    WriteWord <= '0';
+    WriteEnable <= '0';
+    wait for 10 ns;
+    assert (DataOut = x"1234") report "Basic storage failure" severity error;
+    
+    Address <= x"0022";
+    WriteWord <= '1';
+    WriteEnable <= '1';
+    DataIn <= x"5215";
+    wait for 10 ns;
+    assert (DataOut = x"1234") report "no-change block ram failure" severity error;
+    WriteWord <= '0';
+    WriteEnable <= '0';
+    Address <= x"0000";
+    wait for 10 ns;
+    assert( DataOut = x"1234") report "Memory retention failure" severity error;
+    Address <= x"0022";
+    wait for 10 ns;
+    assert( DataOut = x"5215") report "memory timing is too slow" severity error;
+    
+    Address <= x"0010";
+    WriteWord <= '1';
+    WriteEnable <= '1';
+    DataIn <= x"1234";
+    wait for 10 ns;
+    WriteWord <= '0';
+    WriteEnable <= '0';
+    Address <= x"0011";
+    wait for 10 ns;
+    assert (DataOut = x"0012") report "unaligned 8-bit memory read is wrong" severity error;
+    WriteWord <='0';
+    WriteEnable <= '1';
+    DataIn <= x"0056";
+    wait for 10 ns;
+    WriteEnable <= '0';
+    wait for 10 ns;
+    assert (DataOut = x"0056") report "unaligned 8 bit memory write and then read is wrong" severity error;
+    Address <= x"0010";
+    wait for 10 ns;
+    assert (DataOut = x"5634") report "aligned memory read after unaligned write is wrong" severity error;
+    WriteEnable <= '1';
+    DataIn <= x"0078";
+    wait for 10 ns;
+    WriteEnable <= '0';
+    wait for 10 ns;
+    assert (DataOut = x"5678") report "aligned 8-bit memory write is wrong" severity error;
 
    assert false
    report "Testbench of memory completed successfully!"

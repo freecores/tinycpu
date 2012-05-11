@@ -60,7 +60,7 @@ BEGIN
     variable err_cnt: integer :=0;
   begin         
     -- hold reset state for 20 ns.
-    wait for 20 ns;    
+    wait for 10 ns;    
 
     --wait for clock_period*10;
     Enable<= '1';
