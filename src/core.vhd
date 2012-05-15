@@ -14,8 +14,8 @@ entity core is
     MemAddr: out std_logic_vector(15 downto 0); --memory address (in bytes)
     MemWW: out std_logic; --memory writeword
     MemWE: out std_logic; --memory writeenable
-    MemOut: in std_logic_vector(15 downto 0);
-    MemIn: out std_logic_vector(15 downto 0);
+    MemIn: in std_logic_vector(15 downto 0);
+    MemOut: out std_logic_vector(15 downto 0);
     --general interface
     Clock: in std_logic;
     Reset: in std_logic; --When this is high, CPU will reset within 1 clock cycles. 
@@ -26,9 +26,10 @@ entity core is
 
     --debug ports:
     DebugIR: out std_logic_vector(15 downto 0); --current instruction
-    DebugIP: out std_logic_vector(15 downto 0); --current IP
-    DebugCS: out std_logic_vector(15 downto 0); --current code segment
+    DebugIP: out std_logic_vector(7 downto 0); --current IP
+    DebugCS: out std_logic_vector(7 downto 0); --current code segment
     DebugTR: out std_logic; --current value of TR
+    DebugR0: out std_logic_vector(7 downto 0)
    );
 end core;
 
@@ -85,8 +86,8 @@ architecture Behavioral of core is
     WaitForMemory,
     HoldMemory
   );
-  signal state: ProcessState;
-  signal HeldState: ProcessState; --state the processor was in when HOLD was activated
+  signal state: ProcessorState;
+  signal HeldState: ProcessorState; --state the processor was in when HOLD was activated
 
   --carryout signals
   signal CarryCS: std_logic;
@@ -116,30 +117,34 @@ architecture Behavioral of core is
   signal opreg3: std_logic_vector(2 downto 0);
   signal opseges: std_logic; --use ES segment
   
+  signal fetcheraddress: std_logic_vector(15 downto 0);
 begin
-  reg: port map registerfile(
+  reg: registerfile port map(
     WriteEnable => regWE,
     DataIn => regIn,
     Clock => Clock,
     DataOut => regOut
   );
-  carryovercs: port map carryover(
+  carryovercs: carryover port map(
     EnableCarry => CarryCS,
-    DataIn => regOut(REGIP);
-    SegmentIn => regOut(REGCS);
-    Addend => IPAddend;
-    DataOut => IPCarryOut;
-    SegmentOut => CSCarryOut;\
+    DataIn => regOut(REGIP),
+    SegmentIn => regOut(REGCS),
+    Addend => IPAddend,
+    DataOut => IPCarryOut,
+    SegmentOut => CSCarryOut
   );
-  fetcher: port map fetch(
+  fetcher: fetch port map(
     Enable => fetchEN,
-    AddressIn => regOut(REGCS) & regOut(REGIP),
+    AddressIn => fetcheraddress, 
     Clock => Clock,
     DataIn => MemIn,
     IROut => IR,
     AddressOut => MemAddr --this component supports tristate, so no worries about an intermediate signal
   );
-  
+  fetcheraddress <= regOut(REGCS) & regOut(REGIP);
+
+
+  --opcode shortcuts
   opmain <= IR(15 downto 12);
   opimmd <= IR(7 downto 0);
   opcond1 <= IR(8);
@@ -148,44 +153,57 @@ begin
   opreg3 <= IR(2 downto 0);
   opreg2 <= IR(5 downto 3);
   opseges <= IR(6);
+  --debug ports
+  DebugCS <= regOut(REGCS);
+  DebugIP <= regOut(REGIP);
+  DebugR0 <= regOut(0);
+  DebugIR <= IR;
+
   
-  states: process()
+
+
+  states: process(Clock, reset, hold, state)
   begin
     if rising_edge(Clock) then
-      if reset='1' then
+      if reset='1' and hold='0' then
         InReset <= '1';
         state <= ResetProcessor;
-        CarryCS <= '1';
-        CarrySS <= '0';
+        HoldAck <= '0';
         --finish up
       elsif InReset='1' and reset='0' and Hold='0' then --reset is done, start executing
         InReset <= '0';
         state <= FirstFetch;
-        fetchEN <= '1';
       elsif Hold = '1' and (state=HoldMemory or state=Execute or state=ResetProcessor) then
+        --do not hold immediately if waiting on memory or if waiting on the first fetch of an instruction after reset
         state <= HoldMemory;
         HoldAck <= '1';
-        FetchEN <= '0';
-        MemAddr <= "ZZZZZZZZZZZZZZZZ";
-        MemIn <= "ZZZZZZZZZZZZZZZZ";
       elsif Hold='0' and state=HoldMemory then
-        state <= ResetProcessor when reset='1' else Execute;
-        FetchEN <= '1';
+        if reset='1' or InReset='1' then
+          state <= ResetProcessor;
+        else
+          state <= Execute;
+        end if;
       elsif state=FirstFetch then --we have to let IR get loaded before we can execute.
+        --regWE <= (others => '0');
         state <= Execute; 
       end if;
         
     end if;
   end process;
   
-  decode: process()
+  decode: process(Clock, Hold, state, IR, inreset)
   begin
-    if rising_edge(Clock) and Hold='0' then
+    if rising_edge(Clock) then
       if state=Execute then
+        fetchEN <= '1';
         --reset to "usual"
         RegIn(REGIP) <= IPCarryOut;
+        IPAddend <= x"02";
+        SPAddend <= x"00"; --no addend unless pushing or popping
         RegIn(REGCS) <= CSCarryOut;
         RegWE <= (others => '0');
+        MemWE <= '0';
+        MemWW <= '0';
         
         --actual decoding
         case opmain is 
@@ -197,6 +215,25 @@ begin
             report "Not implemented" severity error;
             --synthesis on
         end case;
+      elsif state=ResetProcessor then
+        CarryCS <= '1';
+        CarrySS <= '0';
+        regWE <= (others => '1');
+        regIn <= (others => "00000000");
+        regIn(REGCS) <= x"01";
+        fetchEN <= '1';
+      elsif InReset='1' and hold='0' then
+        fetchEN <= '1';
+      elsif state=HoldMemory then
+        FetchEN <= '0';
+        MemAddr <= "ZZZZZZZZZZZZZZZZ";
+        MemOut <= "ZZZZZZZZZZZZZZZZ";
+        MemWE <= 'Z';
+        MemWW <= 'Z';
+      elsif state=FirstFetch then
+        fetchEN <= '1'; --already enabled, but anyway
+      elsif state=HoldMemory and hold='0' then
+        fetchEN <= '1';
       end if;
     end if;
   end process;
