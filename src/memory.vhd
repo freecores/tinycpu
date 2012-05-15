@@ -71,6 +71,7 @@ begin
         end if;
       end if;
     else
+      datawrite <= x"0000";
       we <= "00";
     end if;
   end process;

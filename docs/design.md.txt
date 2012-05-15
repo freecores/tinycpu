@@ -45,8 +45,17 @@ immediates:
 1. move reg, immediate
 2. move [reg], immediate
 3. push and move reg, immediate (or call immediate)
-4. push immediate
-5. move (relative) reg, immediate
+4. move (relative) reg, immediate
+
+mini-group 5. Root opcode is 5, register is to tell which opcode( up to 8). No register room, only immediate
+push immedate
+XX
+XX
+XX
+XX
+XX
+XX
+XX
 
 
 groups: (limited to 2 registers and no immediates. each group has 8 opcodes)
@@ -55,8 +64,8 @@ move(store) [reg],reg
 move(load) reg,[reg]
 out reg1,reg2 (output to port reg1 value reg2)
 in reg1,reg2 (input from port reg2 and store in reg1)
-pop reg
-push reg
+XX
+XX
 move segmentreg,reg
 move reg,segmentreg
 
@@ -86,12 +95,12 @@ pop segmentreg
 push and move reg, reg (or call reg) 
 exchange reg,reg
 exchange reg,seg
-clear TR
-Set TR
+XX
+XX
 
 group 5:
-increment reg
-decrement reg
+XX
+XX
 far jmp reg1, reg2 (CS=reg1 and IP=reg2)
 far call reg1,reg2
 far jmp [reg] (first byte is CS, second byte is IP)
@@ -109,36 +118,33 @@ disable carryover seg
 mov relative reg, reg
 exchange reg, reg
 
+super group: Super groups only have room for 1 register argument. Each subgroup has 8 opcodes, capable of 8 subgroups.
+subgroup 0: 
+push reg
+pop reg
+set TR
+reset TR
+increment reg
+decrement reg
+set register bank 0
+set register bank 1
+subgroup 1:
+enable carryover seg
+disable carryover seg
+
+
+
 3 register instructions:
 1. add reg1, reg2, reg3 (reg1=reg2+reg3)
 2. sub reg1, reg2, reg3
 
 
-opcodes used: 13 of 16. 3 more opcodes available. Decide what to do with the room later.
+opcodes used: 14 of 16. 2 more opcodes available. Decide what to do with the room later.
 
 Possible canidates for opcode compression include
-* Push immediate (room for 3 sub-opcodes)
-* push and pop reg (room for 7 sub-opcodes each)
-* equals 0 and not equals 0 (room for 7 sub-opcodes each)
-* Set TR and Reset TR (room for 64 opcodes each)
-* increment and decrement reg (room for 7 opcodes each)
-* enable and disable carry over (room for 7 opcodes each)
-* set register bank 0 and 1 (room for 64 opcodes each) 
+* equals 0 and not equals 0 (room for 7 sub-opcodes each) (not doing that because it'd screw with the easy ALU code
 
 
-0 -nop (doesn't do a thing)
-1 -move immediate (only uses first byte)
-2 -move
-3 -push
-4 -push immediate
-5 -push and move (or call when acting on ip)
-6 -compare (is less than, is less than or equal, is greater than, is greater than or equal, is equal, is not equal) (6 conditions room for 2 more in extra)
-7 -add
-8 -subtract
-9 -bitwise operations (xor, or, and, shift right, shift left, not)
-
-x -multiply (if room)
-x -divide
 
 
 conditionals
@@ -146,17 +152,12 @@ conditionals
 1 -- only if true
 for only if false, there should basically be another compare or if applicable an always afterwards
 
-push
-pop
-move
-add
-sub
 
 limitations that shouldn't be passed with instructions
 * Doing 2 memory references 
 * pushing a memory reference (equates to 2 memory references)
 
-Note it is possible however to read and write 16bits at one time to the memory to consecutive addresses. 
+Note it is possible however to read and write 16bits at one time to the memory to consecutive addresses that are 16-bit aligned.
 
 
 segments:
@@ -239,4 +240,55 @@ ALU operations
 10010 Decrement
 10100 Add
 10101 Subtract
+
+
+
+Alignment restrictions:
+In general, their is very few times that a full 16-bit read or 16-bit write is done. These are the times:
+
+* Extended push
+* Extended pop
+* instruction fetch
+
+Because of this, and because I want for 2 clock cycles to be the longest instruction, I must place some alignment restrictions on the CPU
+So, IP must be aligned to a 16-bit address (must be an even number). And SP must also be aligned to a 16-bit address. 
+Though I don't plan on putting any "real" restriction to setting it to an odd address, nothing will actually work right. 
+
+Stack Details:
+Because of the need for 16-bit writes and reads of the stack, even though we're usually only using 8-bit values, we end up pushing 2 bytes at one time always.
+Stack is oppositely done from the 8086. push X will move X to SS:SP and then increment SP by 2. 
+Let's take an example program:
+--SS is 0
+mov sp, 10
+push 0xff
+
+after this, 0x00FF will be moved to SS:SP (0x0010) and then sp will be incremented by 2. If we push an 8-bit value, the value is put in the least-significant byte, and the MSB is 0
+
+
+
+On Reset:
+
+On reset, all general registers are set to 0
+CS is set to 1, IP is set to 0. SS is set to 2 and SP is set to 0. 
+Carryover is set on CS and not set on SS. DS and ES is 0. TR is false.
+Register bank 0 is selected. 
+
+
+
+
+Implemented opcode list:
+legend:
+r = register choice
+C = conditional portion
+s = segment register choice
+i = immediate data
+
+0000 rrrC iiii iiii
+mov reg, immediate
+
+
+
+
+
+
 
