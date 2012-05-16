@@ -27,13 +27,14 @@ end fetch;
 architecture Behavioral of fetch is
   signal IR: std_logic_vector(15 downto 0);
 begin
-  process(Clock, AddressIn, DataIn)
+  process(Clock, AddressIn, DataIn, Enable)
   begin
     --if(rising_edge(Clock)) then
       if(Enable='1') then
         IR <= DataIn;
         AddressOut <= AddressIn;
       else
+        IR <= x"FFFF"; --avoid a latch
         AddressOut <= "ZZZZZZZZZZZZZZZZ";
       end if;
     --end if;
