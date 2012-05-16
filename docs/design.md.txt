@@ -273,6 +273,13 @@ CS is set to 1, IP is set to 0. SS is set to 2 and SP is set to 0.
 Carryover is set on CS and not set on SS. DS and ES is 0. TR is false.
 Register bank 0 is selected. 
 
+Electrical operation:
+On power-on, RESET should be high for at least 2 clock cycles. HOLD can optionally be high as well after these two clock cycles.
+When HOLD is no longer needed, it should just be turned low and an extra clock cycle should be waited on for it to return to RESET state
+When RESET is held low, the processor will execute. It takes 3 clock cycles for the processor to "catch up" to actually executing instructions
+
+
+
 
 
 

@@ -17,9 +17,18 @@ ARCHITECTURE behavior OF carryover_tb IS
       SegmentIn: in std_logic_vector(7 downto 0);
       Addend: in std_logic_vector(7 downto 0); --How much to increase DataIn by (as a signed number). Believe it or not, that's the actual word for what we need.
       DataOut: out std_logic_vector(7 downto 0);
-      SegmentOut: out std_logic_vector(7 downto 0)
+      SegmentOut: out std_logic_vector(7 downto 0);
+      Clock: in std_logic
 --      Debug: out std_logic_vector(8 downto 0)
     );
+  end component;
+  component registerfile is
+  port(
+    WriteEnable: in regwritetype;
+    DataIn: in regdatatype;
+    Clock: in std_logic;
+    DataOut: out regdatatype
+  );
   end component;
     
 
@@ -32,6 +41,10 @@ ARCHITECTURE behavior OF carryover_tb IS
   signal DataOut: std_logic_vector(7 downto 0);
   signal SegmentOut: std_logic_vector(7 downto 0);
 --  signal Debug: std_logic_vector(8 downto 0);
+  
+  signal regwe: regwritetype;
+  signal regin: regdatatype;
+  signal regout: regdatatype;
 
   signal Clock: std_logic;
   constant clock_period : time := 10 ns;
@@ -45,8 +58,15 @@ BEGIN
     Addend => Addend,
     SegmentIn => SegmentIn,
     DataOut => DataOut,
-    SegmentOut => SegmentOut
+    SegmentOut => SegmentOut,
+    Clock => Clock
 --    Debug => Debug
+  );
+  regfile: registerfile port map(
+    WriteEnable => regwe,
+    DataIn => regin,
+    Clock => Clock,
+    DataOut => regout
   );
 
   -- Clock process definitions
@@ -98,6 +118,25 @@ BEGIN
     SegmentIn <= x"00";
     wait for 10 ns;
     assert (SegmentOut=x"00" and DataOut = x"FE") report "Carryover when not appropriate case 1" severity error;
+    
+    --practical register test
+    regin(0) <= x"10";
+    regwe(0) <= '1';
+    wait for 10 ns;
+    regwe(0) <= '0';
+    wait for 10 ns;
+    regwe(0) <= '1';
+    DataIn <= regout(0);
+    Addend <= x"02";
+    SegmentIn <= x"00";
+    wait for 10 ns;
+    regin(0) <= DataOut;
+    wait for 10 ns;
+    assert(DataOut = x"12") report "practical fail 1" severity error;
+    DataIn <= regout(0);
+    regin(0) <= DataOut;
+    wait for 10 ns;
+    assert(DataOut = x"14") report "practical fail 2" severity error;
 
     -- summary of testbench
     assert false

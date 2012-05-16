@@ -29,14 +29,15 @@ architecture Behavioral of fetch is
 begin
   process(Clock, AddressIn, DataIn)
   begin
-    if(rising_edge(Clock)) then
+    --if(rising_edge(Clock)) then
       if(Enable='1') then
         IR <= DataIn;
         AddressOut <= AddressIn;
       else
         AddressOut <= "ZZZZZZZZZZZZZZZZ";
       end if;
-    end if;
+    --end if;
   end process;
+  --AddressOut <= AddressIn when Enable='1' else "ZZZZZZZZZZZZZZZZ";
   IROut <= IR;
 end Behavioral;

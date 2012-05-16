@@ -69,7 +69,7 @@ BEGIN
     Enable <= '1';
     AddressIn <= x"1234";
     DataIn <= x"5321";
-    wait for 10 ns;
+    wait for 10 ns; 
     assert (IROut = x"5321" and AddressOut = x"1234") report "basic operation failure" severity error;
     
     AddressIn <= x"5121";

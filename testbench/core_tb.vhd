@@ -41,11 +41,11 @@ ARCHITECTURE behavior OF core_tb IS
   signal MemWW: std_logic; --memory writeword
   signal MemWE: std_logic; --memory writeenable
   signal MemOut: std_logic_vector(15 downto 0);
-  signal MemIn: std_logic_vector(15 downto 0);
+  signal MemIn: std_logic_vector(15 downto 0):=x"0000";
   --general interface
-  signal Reset: std_logic; --When this is high, CPU will reset within 1 clock cycles. 
+  signal Reset: std_logic:='0'; --When this is high, CPU will reset within 1 clock cycles. 
   --Enable: in std_logic; --When this is high, the CPU executes as normal, when low the CPU stops at the next clock cycle(maintaining all state)
-  signal Hold: std_logic; --when high, CPU pauses execution and places Memory interfaces into high impendance state so the memory can be used by other components
+  signal Hold: std_logic:='0'; --when high, CPU pauses execution and places Memory interfaces into high impendance state so the memory can be used by other components
   signal HoldAck: std_logic; --when high, CPU acknowledged hold and buses are in high Z
   --todo: port interface
 
@@ -111,7 +111,7 @@ BEGIN
     
     Reset <= '0';
     MemIn <= x"0012"; --mov r0, 0xFF
-    wait for 10 ns;
+    wait for 30 ns; --fetcher needs two clock cycles to catch up
     assert(MemAddr = x"0100") report "Not fetching from correct start address" severity error;
     MemIn <= x"00F1"; --mov r0, 0xF1
     wait for 10 ns;
