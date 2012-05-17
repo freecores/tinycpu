@@ -131,9 +131,8 @@ BEGIN
     assert(DebugR0 = x"20") report "mov to r0 is wrong after move to IP" severity error;
     MemIn <= x"1050"; --mov [r0], 0x50 (r0 is 0x20)
     wait for 10 ns;
+    MemIn <= x"0025"; --mov r0,0x25
     assert(DebugR0 = x"20" and DebugTR='0') report "moved to r0 conditional thought TR is 0" severity error;
-    wait for 10 ns;
-    wait for 10 ns; --wait for memory
     assert(MemAddr = x"0020" and MemWE='1' and MemWW='0' and MemOut=x"0050") report "Write to memory doesn't work" severity error;
     wait for 10 ns;
     --wait for 10 ns; --have to wait an extra cycle for memory
