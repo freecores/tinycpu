@@ -33,7 +33,7 @@ last 1 bit: conditional
 second byte: 
 first 1 bit: second portion of condition (if not immediate) (1 for only if false)
 next 1 bit: use extra segment
-next 3 bits: other register. If not 3rd register, top bit specifies which register bank, others unused
+next 3 bits: other register. If not 3rd register
 last 3 bits: extra opcode information or third register. such as for ADD it could be target=source+third_register
 
 ...or second byte is immediate value

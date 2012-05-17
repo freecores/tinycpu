@@ -126,8 +126,17 @@ BEGIN
     MemIn <= x"0020"; --mov r0, 0x20
     wait for 10 ns;
     assert (MemAddr = x"0152" and DebugIP=x"50") report "fetching is wrong after move to IP" severity error; --DebugIP uses regOut, Fetchaddress uses regIn, so this is correct
+    MemIn <= x"0160"; --mov r0,0x60 if TR is set
     wait for 10 ns; --wait until register write happens
     assert(DebugR0 = x"20") report "mov to r0 is wrong after move to IP" severity error;
+    MemIn <= x"1050"; --mov [r0], 0x50 (r0 is 0x20)
+    wait for 10 ns;
+    assert(DebugR0 = x"20" and DebugTR='0') report "moved to r0 conditional thought TR is 0" severity error;
+    wait for 10 ns;
+    wait for 10 ns; --wait for memory
+    assert(MemAddr = x"0020" and MemWE='1' and MemWW='0' and MemOut=x"0050") report "Write to memory doesn't work" severity error;
+    wait for 10 ns;
+    --wait for 10 ns; --have to wait an extra cycle for memory
     
     -- summary of testbench
     assert false

@@ -88,6 +88,8 @@ BEGIN
     Address <= x"0106";
     Data <= x"0063";
     wait for 10 ns;
+    --Address <= x"0108";
+    --wait for 10 ns;
     DMA <= '0';
     wait for 10 ns;
     Hold <= '0';

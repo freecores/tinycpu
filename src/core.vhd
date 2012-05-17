@@ -99,6 +99,9 @@ architecture Behavioral of core is
   signal SPAddend: std_logic_vector(7 downto 0);
   signal IPCarryOut: std_logic_vector(7 downto 0);
   signal CSCarryOut: std_logic_vector(7 downto 0);
+  signal SPCarryOut: std_logic_vector(7 downto 0);
+  signal SSCarryOut: std_logic_vector(7 downto 0);
+
   --register signals
   signal regWE:regwritetype;
   signal regIn: regdatatype;
@@ -106,9 +109,19 @@ architecture Behavioral of core is
   --fetch signals
   signal fetchEN: std_logic;
   signal IR: std_logic_vector(15 downto 0);
+  --alu signals
+  signal AluOp: std_logic_vector(4 downto 0);
+  signal AluIn1: std_logic_vector(7 downto 0);
+  signal AluIn2: std_logic_vector(7 downto 0);
+  signal AluOut: std_logic_vector(7 downto 0);
+  signal TR: std_logic;
   
   --control signals
   signal InReset: std_logic;
+  signal OpAddress: std_logic_vector(15 downto 0); --memory address to use for operation of an instruction
+  signal OpData: std_logic_vector(15 downto 0); --data to write or will load to here
+  signal OpWW: std_logic;
+  signal OpWE: std_logic;
 
   --opcode shortcut signals
   signal opmain: std_logic_vector(3 downto 0);
@@ -119,8 +132,18 @@ architecture Behavioral of core is
   signal opreg2: std_logic_vector(2 downto 0);
   signal opreg3: std_logic_vector(2 downto 0);
   signal opseges: std_logic; --use ES segment
+
+  signal regbank: std_logic;
   
   signal fetcheraddress: std_logic_vector(15 downto 0);
+
+  --temporary signals
+  signal tempreg1: std_logic_vector(3 downto 0);
+  signal tempreg2: std_logic_vector(3 downto 0);
+  signal tempreg3: std_logic_vector(3 downto 0);
+  signal FetchMemAddr: std_logic_vector(15 downto 0);
+
+  
 begin
   reg: registerfile port map(
     WriteEnable => regWE,
@@ -137,17 +160,36 @@ begin
     SegmentOut => CSCarryOut,
     Clock => Clock
   );
+  carryoverss: carryover port map(
+    EnableCarry => CarrySS,
+    DataIn => regIn(REGSP),
+    SegmentIn => RegIn(REGSS),
+    Addend => SPAddend,
+    DataOut => SPCarryOut,
+    SegmentOut => SSCarryOut,
+    Clock => Clock
+  );
   fetcher: fetch port map(
     Enable => fetchEN,
     AddressIn => fetcheraddress, 
     Clock => Clock,
     DataIn => MemIn,
     IROut => IR,
-    AddressOut => MemAddr --this component supports tristate, so no worries about an intermediate signal
+    AddressOut => FetchMemAddr
+  );
+  cpualu: alu port map(
+    Op => AluOp,
+    DataIn1 => AluIn1,
+    DataIn2 => AluIn2,
+    DataOut => AluOut,
+    TR => TR
   );
   fetcheraddress <= regIn(REGCS) & regIn(REGIP);
-
-
+  MemAddr <= OpAddress when state=WaitForMemory else FetchMemAddr;
+  MemOut <= OpData when (state=WaitForMemory and OpWE='1') else x"0000";
+  MemWE <= OpWE when state=WaitForMemory else '0';
+  MemWW <= OpWW when state=WaitForMemory else '0';
+  OpData <= MemIn when (state=WaitForMemory and OpWE='0') else "ZZZZZZZZZZZZZZZZ";
   --opcode shortcuts
   opmain <= IR(15 downto 12);
   opimmd <= IR(7 downto 0);
@@ -162,7 +204,12 @@ begin
   DebugIP <= regOut(REGIP);
   DebugR0 <= regOut(0);
   DebugIR <= IR;
-
+  DebugTR <= TR;
+  --register addresses with registerbank baked in
+  tempreg1 <= ('1' & opreg1) when (regbank='1' and opreg1(2)='0') else '0' & opreg1;
+  tempreg2 <= ('1' & opreg2) when (regbank='1' and opreg2(2)='0') else '0' & opreg2;
+  tempreg3 <= ('1' & opreg3) when (regbank='1' and opreg3(2)='0') else '0' & opreg3;
+  
   
   
   decode: process(Clock, Hold, state, IR, inreset, reset, regin, regout, IPCarryOut, CSCarryOut)
@@ -180,7 +227,14 @@ begin
         regIn <= (others => "00000000");
         regIn(REGCS) <= x"01";
         IPAddend <= x"00";
+        SPAddend <= x"00";
+        AluOp <= "10001"; --reset TR in ALU
+        regbank <= '0';
         fetchEN <= '1';
+        OpData <= "ZZZZZZZZZZZZZZZZ";
+        OpAddress <= x"0000";
+        OpWE <= '0';
+        opWW <= '0';
         --finish up
       elsif InReset='1' and reset='0' and Hold='0' then --reset is done, start executing
         InReset <= '0';
@@ -219,6 +273,10 @@ begin
         
       elsif state=FirstFetch3 then
         state <= Execute;
+      elsif state=WaitForMemory then
+        state <= Execute;
+        FetchEn <= '1';
+        IpAddend <= x"02";
       end if;
 
 
@@ -232,22 +290,32 @@ begin
         regWE(REGIP) <= '1';
         regWE(REGCS) <= '1';
         regIn(REGCS) <= CSCarryOut;
-        
-        MemWE <= '0';
-        MemWW <= '0';
+        regIn(REGSP) <= SPCarryOut; --with addend being 0, it'll just write SP to SP so it won't change, but this makes code easier for me
+        regIn(REGSS) <= SSCarryOut;
+        regWE(REGSP) <= '1';
+        regWE(REGSS) <= '1';
+        OpAddress <= "ZZZZZZZZZZZZZZZZ";
         
         --actual decoding
-        case opmain is 
-          when "0000" => --mov reg,imm
-            --if to_integer(unsigned(opreg1)) = REGIP then
-              
-            RegIn(to_integer(unsigned(opreg1))) <= opimmd;
-            RegWE(to_integer(unsigned(opreg1))) <= '1';
-          when others => 
-            --synthesis off
-            report "Not implemented" severity error;
-            --synthesis on
-        end case;
+        if opcond1='0' or (opcond1='1' and TR='1') then
+          case opmain is 
+            when "0000" => --mov reg,imm
+              regIn(to_integer(unsigned(tempreg1))) <= opimmd;
+              regWE(to_integer(unsigned(tempreg1))) <= '1';
+            when "0001" => --mov [reg],imm
+              OpAddress <= regOut(REGDS) & regOut(to_integer(unsigned(tempreg1)));
+              OpWE <= '1';
+              OpData <= x"00" & opimmd;
+              OpWW <= '0';
+              state <= WaitForMemory;
+              IPAddend <= x"00"; --disable all this because we have to wait a cycle to write memory
+              FetchEN <= '0';
+            when others => 
+              --synthesis off
+              report "Not implemented" severity error;
+              --synthesis on
+          end case;
+        end if;
       end if;
 
 
