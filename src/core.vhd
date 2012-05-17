@@ -239,6 +239,8 @@ begin
         --actual decoding
         case opmain is 
           when "0000" => --mov reg,imm
+            --if to_integer(unsigned(opreg1)) = REGIP then
+              
             RegIn(to_integer(unsigned(opreg1))) <= opimmd;
             RegWE(to_integer(unsigned(opreg1))) <= '1';
           when others => 

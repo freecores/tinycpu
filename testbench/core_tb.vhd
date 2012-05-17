@@ -111,7 +111,7 @@ BEGIN
     
     Reset <= '0';
     MemIn <= x"0012"; --mov r0, 0xFF
-    wait for 30 ns; --fetcher needs two clock cycles to catch up
+    wait for 20 ns; --fetcher needs two clock cycles to catch up
     assert(MemAddr = x"0100") report "Not fetching from correct start address" severity error;
     MemIn <= x"00F1"; --mov r0, 0xF1
     wait for 10 ns;
@@ -120,7 +120,14 @@ BEGIN
     MemIn <= x"0056";
     wait for 10 ns;
     assert(DebugR0 = x"F1") report "loaded value of R0 is not correct" severity error;
+    MemIn <= x"0E50"; --mov IP, 0x50
+    wait for 10 ns; 
+    assert( MemAddr = x"0150") report "mov to IP doesn't work" severity error; --DebugIP uses regOut, so it won't be updated until next clock cycle actually, but it's correct.
+    MemIn <= x"0020"; --mov r0, 0x20
     wait for 10 ns;
+    assert (MemAddr = x"0152" and DebugIP=x"50") report "fetching is wrong after move to IP" severity error; --DebugIP uses regOut, Fetchaddress uses regIn, so this is correct
+    wait for 10 ns; --wait until register write happens
+    assert(DebugR0 = x"20") report "mov to r0 is wrong after move to IP" severity error;
     
     -- summary of testbench
     assert false
