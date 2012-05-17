@@ -84,6 +84,7 @@ architecture Behavioral of core is
     ResetProcessor,
     FirstFetch1, --the fetcher needs two clock cycles to catch up
     FirstFetch2,
+    Firstfetch3,
     Execute,
     WaitForMemory,
     HoldMemory
@@ -204,10 +205,7 @@ begin
       elsif state=FirstFetch1 then --we have to let IR get loaded before we can execute.
         --regWE <= (others => '0');
         fetchEN <= '1'; --already enabled, but anyway
-        regWE <= (others => '0');
-        state <= FirstFetch2; 
-      elsif state=FirstFetch2 then
-        state <= Execute;
+        --regWE <= (others => '0');
         IPAddend <= x"02";
         SPAddend <= x"00"; --no addend unless pushing or popping
         RegWE <= (others => '0');
@@ -215,6 +213,12 @@ begin
         regWE(REGIP) <= '1';
         regWE(REGCS) <= '1';
         regIn(REGCS) <= CSCarryOut;
+        state <= Execute; 
+      elsif state=FirstFetch2 then
+        state <= FirstFetch3;
+        
+      elsif state=FirstFetch3 then
+        state <= Execute;
       end if;
 
 
