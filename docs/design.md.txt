@@ -289,12 +289,38 @@ r = register choice
 C = conditional portion
 s = segment register choice
 i = immediate data
+N = not used
+o = opcode choice (for groups)
 
 0000 rrrC iiii iiii
 mov reg, immediate
 
+0001 rrrC iiii iiii
+mov [reg], immediate
 
+group 3 comparions
+0011 rrrC Crrr Nooo
+opcode choices
+000: is greater than reg1,reg2 (TR=reg1>reg2)
+001: is greater or equal to reg,reg
+010: is less than reg,reg
+011: is less than or equal to reg,reg
+100: is equal to reg,reg
+101: is not equal to reg,reg
+110: equals 0 reg
+111: not equals 0 reg
 
+group 4 bitwise
+0100 rrrC Crrr Nooo
+opcode choices
+000: and reg1,reg2 (reg1=reg1 and reg2)
+001: or reg, reg
+010: xor reg,reg
+011: not reg1,reg2 (reg1=not reg2)
+100: left shift reg,reg
+101: right shift reg,reg
+110: rotate right reg,reg
+111: rotate left reg,reg
 
 
 

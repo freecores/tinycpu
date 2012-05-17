@@ -137,10 +137,10 @@ architecture Behavioral of core is
   
   signal fetcheraddress: std_logic_vector(15 downto 0);
 
-  --temporary signals
-  signal tempreg1: std_logic_vector(3 downto 0);
-  signal tempreg2: std_logic_vector(3 downto 0);
-  signal tempreg3: std_logic_vector(3 downto 0);
+  
+  signal bankreg1: std_logic_vector(3 downto 0); --these signals have register bank stuff baked in
+  signal bankreg2: std_logic_vector(3 downto 0);
+  signal bankreg3: std_logic_vector(3 downto 0);
   signal FetchMemAddr: std_logic_vector(15 downto 0);
 
   
@@ -197,8 +197,8 @@ begin
   opcond2 <= IR(7);
   opreg1 <= IR(11 downto 9);
   opreg3 <= IR(2 downto 0);
-  opreg2 <= IR(5 downto 3);
-  opseges <= IR(6);
+  opreg2 <= IR(6 downto 4);
+  opseges <= IR(3);
   --debug ports
   DebugCS <= regOut(REGCS);
   DebugIP <= regOut(REGIP);
@@ -206,9 +206,9 @@ begin
   DebugIR <= IR;
   DebugTR <= TR;
   --register addresses with registerbank baked in
-  tempreg1 <= ('1' & opreg1) when (regbank='1' and opreg1(2)='0') else '0' & opreg1;
-  tempreg2 <= ('1' & opreg2) when (regbank='1' and opreg2(2)='0') else '0' & opreg2;
-  tempreg3 <= ('1' & opreg3) when (regbank='1' and opreg3(2)='0') else '0' & opreg3;
+  bankreg1 <= ('1' & opreg1) when (regbank='1' and opreg1(2)='0') else '0' & opreg1;
+  bankreg2 <= ('1' & opreg2) when (regbank='1' and opreg2(2)='0') else '0' & opreg2;
+  bankreg3 <= ('1' & opreg3) when (regbank='1' and opreg3(2)='0') else '0' & opreg3;
   
   
   
@@ -300,16 +300,27 @@ begin
         if opcond1='0' or (opcond1='1' and TR='1') then
           case opmain is 
             when "0000" => --mov reg,imm
-              regIn(to_integer(unsigned(tempreg1))) <= opimmd;
-              regWE(to_integer(unsigned(tempreg1))) <= '1';
+              regIn(to_integer(unsigned(bankreg1))) <= opimmd;
+              regWE(to_integer(unsigned(bankreg1))) <= '1';
             when "0001" => --mov [reg],imm
-              OpAddress <= regOut(REGDS) & regOut(to_integer(unsigned(tempreg1)));
+              OpAddress <= regOut(REGDS) & regOut(to_integer(unsigned(bankreg1)));
               OpWE <= '1';
               OpData <= x"00" & opimmd;
               OpWW <= '0';
               state <= WaitForMemory;
               IPAddend <= x"00"; --disable all this because we have to wait a cycle to write memory
               FetchEN <= '0';
+            when "0011" => --group 3 comparisons
+              AluOp <= "01" & opreg3; --nothing hard here, ALU does it all for us
+              AluIn1 <= regOut(to_integer(unsigned(opreg1)));
+              AluIn2 <= regOut(to_integer(unsigned(opreg2)));
+            when "0100" => --group 4 bitwise operations
+              AluOp <= "00" & opreg3; --nothing hard here, ALU does it all for us
+              AluIn1 <= regOut(to_integer(unsigned(opreg1)));
+              AluIn2 <= regOut(to_integer(unsigned(opreg2)));
+              regIn(to_integer(unsigned(opreg1))) <= AluOut;
+              regWE(to_integer(unsigned(opreg1))) <= '1';
+           
             when others => 
               --synthesis off
               report "Not implemented" severity error;

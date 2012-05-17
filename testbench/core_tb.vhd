@@ -134,7 +134,15 @@ BEGIN
     MemIn <= x"0025"; --mov r0,0x25
     assert(DebugR0 = x"20" and DebugTR='0') report "moved to r0 conditional thought TR is 0" severity error;
     assert(MemAddr = x"0020" and MemWE='1' and MemWW='0' and MemOut=x"0050") report "Write to memory doesn't work" severity error;
+    wait for 20 ns; --wait an extra cycle because of WaitForMemory state
+    MemIn <= x"0235"; --mov r1,0x35
     wait for 10 ns;
+    MemIn <= "0011000000010000"; --compare greater than r0, r1 : TR=r0 > r1
+    wait for 10 ns;
+    assert(DebugTR ='0') report "ALU compare is not correct for greater than" severity error;
+    MemIn <= "0011000000010010"; --TR=r0 < r1
+    wait for 20 ns;
+    assert(DebugTR='1') report "ALU compare is not correct for less than" severity error;
     --wait for 10 ns; --have to wait an extra cycle for memory
     
     -- summary of testbench
