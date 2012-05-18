@@ -119,13 +119,13 @@ BEGIN
     assert(DebugIR = x"00F1" and DebugR0 /= x"12") report "IR is not correct. Execution occurs during first fetch";
     MemIn <= x"0056";
     wait for 10 ns;
-    assert(DebugR0 = x"F1") report "loaded value of R0 is not correct" severity error;
+    assert(DebugR0 = x"56") report "loaded value of R0 is not correct" severity error;
     MemIn <= x"0E50"; --mov IP, 0x50
     wait for 10 ns; 
     assert( MemAddr = x"0150") report "mov to IP doesn't work" severity error; --DebugIP uses regOut, so it won't be updated until next clock cycle actually, but it's correct.
     MemIn <= x"0020"; --mov r0, 0x20
     wait for 10 ns;
-    assert (MemAddr = x"0152" and DebugIP=x"50") report "fetching is wrong after move to IP" severity error; --DebugIP uses regOut, Fetchaddress uses regIn, so this is correct
+    assert (MemAddr = x"0152" and DebugIP=x"52") report "fetching is wrong after move to IP" severity error; --DebugIP uses regOut, Fetchaddress uses regIn, so this is correct
     MemIn <= x"0160"; --mov r0,0x60 if TR is set
     wait for 10 ns; --wait until register write happens
     assert(DebugR0 = x"20") report "mov to r0 is wrong after move to IP" severity error;

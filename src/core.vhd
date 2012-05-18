@@ -153,8 +153,8 @@ begin
   );
   carryovercs: carryover port map(
     EnableCarry => CarryCS,
-    DataIn => regIn(REGIP),
-    SegmentIn => regIn(REGCS),
+    DataIn => regOut(REGIP),
+    SegmentIn => regOut(REGCS),
     Addend => IPAddend,
     DataOut => IPCarryOut,
     SegmentOut => CSCarryOut,
@@ -162,8 +162,8 @@ begin
   );
   carryoverss: carryover port map(
     EnableCarry => CarrySS,
-    DataIn => regIn(REGSP),
-    SegmentIn => RegIn(REGSS),
+    DataIn => regOut(REGSP),
+    SegmentIn => RegOut(REGSS),
     Addend => SPAddend,
     DataOut => SPCarryOut,
     SegmentOut => SSCarryOut,
@@ -186,9 +186,9 @@ begin
   );
   fetcheraddress <= regIn(REGCS) & regIn(REGIP);
   MemAddr <= OpAddress when state=WaitForMemory else FetchMemAddr;
-  MemOut <= OpData when (state=WaitForMemory and OpWE='1') else x"0000";
-  MemWE <= OpWE when state=WaitForMemory else '0';
-  MemWW <= OpWW when state=WaitForMemory else '0';
+  MemOut <= OpData when (state=WaitForMemory and OpWE='1') else "ZZZZZZZZZZZZZZZZ" when state=HoldMemory else x"0000";
+  MemWE <= OpWE when state=WaitForMemory else 'Z' when state=HoldMemory else '0';
+  MemWW <= OpWW when state=WaitForMemory else 'Z' when state=HoldMEmory else '0';
   OpData <= MemIn when (state=WaitForMemory and OpWE='0') else "ZZZZZZZZZZZZZZZZ";
   --opcode shortcuts
   opmain <= IR(15 downto 12);
@@ -245,10 +245,6 @@ begin
         state <= HoldMemory;
         HoldAck <= '1';
         FetchEN <= '0';
-        MemAddr <= "ZZZZZZZZZZZZZZZZ";
-        MemOut <= "ZZZZZZZZZZZZZZZZ";
-        MemWE <= 'Z';
-        MemWW <= 'Z';
       elsif Hold='0' and state=HoldMemory then
         if reset='1' or InReset='1' then
           state <= ResetProcessor;

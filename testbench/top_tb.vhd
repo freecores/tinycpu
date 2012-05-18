@@ -98,7 +98,7 @@ BEGIN
     --start the processor
     Reset <= '0';
     wait for 30 ns; --wait 3 clock cycles for CPU to execute first instruction
-    wait for 20 ns; --wait 2 clock cycle for first instruction decode and register write to complete
+    wait for 10 ns; --wait 1 clock cycle for first instruction decode
     assert(Debugr0 = x"57") report "R0 is not loaded properly for first instruction" severity error;
     wait for 10 ns;
     assert(DebugR0 = x"F1") report "R0 is not loaded properly for second instruction" severity error;

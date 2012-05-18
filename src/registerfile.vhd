@@ -27,12 +27,13 @@ begin
   regs: for I in 0 to 15 generate
     process(WriteEnable(I), DataIn(I), Clock)
     begin
-      if falling_edge(Clock) then --I really hope this one falling_edge component doesn't bite me in the ass later
+      if rising_edge(Clock) then --I really hope this one falling_edge component doesn't bite me in the ass later
         if(WriteEnable(I) = '1') then
           registers(I) <= DataIn(I);
         end if;
       end if;
     end process;
-    DataOut(I) <= registers(I);
+    DataOut(I) <= registers(I) when WriteEnable(I)='0' else DataIn(I);
+     -- DataOut(I) <= registers(I);
   end generate regs;
 end Behavioral;
