@@ -141,10 +141,21 @@ BEGIN
     wait for 10 ns;
     assert(DebugTR ='0') report "ALU compare is not correct for greater than" severity error;
     MemIn <= "0011000000010010"; --TR=r0 < r1
-    wait for 20 ns;
+    wait for 10 ns;
     assert(DebugTR='1') report "ALU compare is not correct for less than" severity error;
-    --wait for 10 ns; --have to wait an extra cycle for memory
-    
+
+    --now test bitwise
+    MemIn <= x"00F0"; --mov r0, 0xFO
+    wait for 10 ns;
+    MemIn <= x"0218"; --mov r1, 0x18
+    wait for 10 ns;
+    MemIn <= "0100000000010001"; --or r0, r1 (r0 = r0 or r1)
+    wait for 10 ns;
+    assert(DebugR0 = x"F8") report "ALU OR is not correct" severity error;
+    MemIn <= x"1070"; --mov [r0], 0x70 -- for debugging
+    wait for 20 ns;
+
+
     -- summary of testbench
     assert false
     report "Testbench of core completed successfully!"

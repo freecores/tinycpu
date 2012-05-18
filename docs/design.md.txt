@@ -286,6 +286,7 @@ When RESET is held low, the processor will execute. It takes 3 clock cycles for 
 Implemented opcode list:
 legend:
 r = register choice
+R = register choice or opcode choice for sub groups
 C = conditional portion
 s = segment register choice
 i = immediate data
@@ -322,6 +323,13 @@ opcode choices
 110: rotate right reg,reg
 111: rotate left reg,reg
 
+group 5 misc
+0101 rrrC CRRR sooo
+opcode choices:
+000: subgroup 5-0
+  RRR choices:
+  000: push reg
+  001: pop reg
 
 
 

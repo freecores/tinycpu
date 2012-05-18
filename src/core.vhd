@@ -143,7 +143,8 @@ architecture Behavioral of core is
   signal bankreg3: std_logic_vector(3 downto 0);
   signal FetchMemAddr: std_logic_vector(15 downto 0);
 
-  
+  signal UsuallySS: std_logic_vector(3 downto 0);
+  signal UsuallyDS: std_logic_vector(3 downto 0);
 begin
   reg: registerfile port map(
     WriteEnable => regWE,
@@ -209,10 +210,12 @@ begin
   bankreg1 <= ('1' & opreg1) when (regbank='1' and opreg1(2)='0') else '0' & opreg1;
   bankreg2 <= ('1' & opreg2) when (regbank='1' and opreg2(2)='0') else '0' & opreg2;
   bankreg3 <= ('1' & opreg3) when (regbank='1' and opreg3(2)='0') else '0' & opreg3;
+  --UsuallySegment shortcuts (only used when not an immediate
+  UsuallyDS <= "1101" when opseges='0' else "1110";
+  UsuallySS <= "1111" when opseges='0' else "1110";
   
   
-  
-  decode: process(Clock, Hold, state, IR, inreset, reset, regin, regout, IPCarryOut, CSCarryOut)
+  foo: process(Clock, Hold, state, IR, inreset, reset, regin, regout, IPCarryOut, CSCarryOut)
   begin
     if rising_edge(Clock) then
 
@@ -273,6 +276,7 @@ begin
         state <= Execute;
         FetchEn <= '1';
         IpAddend <= x"02";
+        SpAddend <= x"00";
       end if;
 
 
@@ -308,15 +312,46 @@ begin
               FetchEN <= '0';
             when "0011" => --group 3 comparisons
               AluOp <= "01" & opreg3; --nothing hard here, ALU does it all for us
-              AluIn1 <= regOut(to_integer(unsigned(opreg1)));
-              AluIn2 <= regOut(to_integer(unsigned(opreg2)));
+              AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
+              AluIn2 <= regOut(to_integer(unsigned(bankreg2)));
             when "0100" => --group 4 bitwise operations
               AluOp <= "00" & opreg3; --nothing hard here, ALU does it all for us
-              AluIn1 <= regOut(to_integer(unsigned(opreg1)));
-              AluIn2 <= regOut(to_integer(unsigned(opreg2)));
-              regIn(to_integer(unsigned(opreg1))) <= AluOut;
-              regWE(to_integer(unsigned(opreg1))) <= '1';
-           
+              AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
+              AluIn2 <= regOut(to_integer(unsigned(bankreg2)));
+              regIn(to_integer(unsigned(bankreg1))) <= AluOut;
+              regWE(to_integer(unsigned(bankreg1))) <= '1';
+           when "0101" => --group 5
+              case opreg3 is
+                when "000" => --subgroup 5-0
+                  case opreg2 is
+                    when "000" => --push reg
+                      SpAddend <= x"02"; --set SP to increment
+                      OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & regOut(REGSP);
+                      OpWE <= '1';
+                      OpData <= x"00" & regOut(to_integer(unsigned(bankreg1)));
+                      OpWW <= '1';
+                      state <= WaitForMemory;
+                      IPAddend <= x"00";
+                      FetchEN <= '0';
+                    when "001" => --pop reg
+                      SPAddend <= x"FE"; --set SP to decrement
+                      OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & regOut(REGSP);
+                      OpWE <= '0';
+                      regIn(to_integer(unsigned(bankreg1))) <= OpData(7 downto 0);
+                      OpWW <= '0';
+                      state <= WaitForMemory;
+                      IPAddend <= x"00";
+                      FetchEN <= '0';
+                    when others =>
+                      --synthesis off
+                      report "Not implemented subgroup 5-0" severity error;
+                      --synthesis on
+                  end case;
+                when others =>
+                  --synthesis off
+                  report "Not implemented group 5" severity error;
+                  --synthesis on
+              end case;
             when others => 
               --synthesis off
               report "Not implemented" severity error;
@@ -325,10 +360,10 @@ begin
         end if;
       end if;
 
-
-
-
     end if;
+
+
+    
   end process;
 
 
