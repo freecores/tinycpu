@@ -28,6 +28,7 @@ begin
   TR <= TRData;
   process(DataIn1, DataIn2, Op)
   begin
+    --TRData <='0'; --default
     case Op is 
 --bitwise operations
       when "00000" => --and

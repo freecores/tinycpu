@@ -87,7 +87,8 @@ architecture Behavioral of core is
     Firstfetch3,
     Execute,
     WaitForMemory,
-    HoldMemory
+    HoldMemory,
+    WaitForAlu -- wait for settling is needed when using the ALU
   );
   signal state: ProcessorState;
   signal HeldState: ProcessorState; --state the processor was in when HOLD was activated
@@ -145,6 +146,7 @@ architecture Behavioral of core is
 
   signal UsuallySS: std_logic_vector(3 downto 0);
   signal UsuallyDS: std_logic_vector(3 downto 0);
+  signal aluregisterout: std_logic_vector(3 downto 0);
 begin
   reg: registerfile port map(
     WriteEnable => regWE,
@@ -277,6 +279,13 @@ begin
         FetchEn <= '1';
         IpAddend <= x"02";
         SpAddend <= x"00";
+      elsif state=WaitForAlu then
+        state <= Execute;
+        regIn(to_integer(unsigned(AluRegisterOut))) <= AluOut;
+        regWE(to_integer(unsigned(AluRegisterOut))) <= '1';
+        FetchEN <= '1';
+        IPAddend <= x"02";
+        SPAddend <= x"00";
       end if;
 
 
@@ -315,11 +324,16 @@ begin
               AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
               AluIn2 <= regOut(to_integer(unsigned(bankreg2)));
             when "0100" => --group 4 bitwise operations
+              --setup wait state
+              State <= WaitForAlu;
+              FetchEN <= '0';
+              IPAddend <= x"00";
               AluOp <= "00" & opreg3; --nothing hard here, ALU does it all for us
               AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
               AluIn2 <= regOut(to_integer(unsigned(bankreg2)));
-              regIn(to_integer(unsigned(bankreg1))) <= AluOut;
-              regWE(to_integer(unsigned(bankreg1))) <= '1';
+              AluRegisterOut <= bankreg1;
+              --regIn(to_integer(unsigned(bankreg1))) <= AluOut;
+              --regWE(to_integer(unsigned(bankreg1))) <= '1';
            when "0101" => --group 5
               case opreg3 is
                 when "000" => --subgroup 5-0

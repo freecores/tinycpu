@@ -6,6 +6,15 @@ This is the design of TinyCPU. It's goals are as follows:
 4. use a small amount of "rich" instructions to do powerful things
 5. 1 instruction per clock cycle
 
+
+BIG CHANGE:
+So, apparently making a single-cycle CPU is extremely hard... so instead, we'll be striving for a 2-cycle CPU.
+Usual cycles:
+1-cycle: mov, jmp, etc general data movement
+2-cycle: ALU operations
+1-cycle with memory wait(so really 2 cycle): all instructions that reference memory
+
+
 Relative moves:
 In order to provide uesfulness to the segment-carryover feature, there are a few options for moving a "relative" amount to a register, including IP and SP
 A relative move differs in most of the opcodes in that the relative factor is treated as a signed value. 

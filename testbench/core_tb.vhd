@@ -145,15 +145,20 @@ BEGIN
     assert(DebugTR='1') report "ALU compare is not correct for less than" severity error;
 
     --now test bitwise
+    MemIn <= x"0E50"; --mov IP, 0x50 -- do this just so we can count IP easily
+    wait for 10 ns;
     MemIn <= x"00F0"; --mov r0, 0xFO
     wait for 10 ns;
     MemIn <= x"0218"; --mov r1, 0x18
     wait for 10 ns;
     MemIn <= "0100000000010001"; --or r0, r1 (r0 = r0 or r1)
     wait for 10 ns;
+    wait for 10 ns; --wait for settling
     assert(DebugR0 = x"F8") report "ALU OR is not correct" severity error;
-    MemIn <= x"1070"; --mov [r0], 0x70 -- for debugging
-    wait for 20 ns;
+    assert( MemAddr=x"0156") report "Fetching is wrong after WaitForAlu" severity error;
+    MemIn <= x"0070"; --mov r0, 0x70 -- for debugging
+    wait for 10 ns;
+    assert( MemAddr=x"0158") report "IP increment is wrong after WaitForAlu" severity error;
 
 
     -- summary of testbench
