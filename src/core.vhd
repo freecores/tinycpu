@@ -115,7 +115,10 @@ architecture Behavioral of core is
   signal AluIn1: std_logic_vector(7 downto 0);
   signal AluIn2: std_logic_vector(7 downto 0);
   signal AluOut: std_logic_vector(7 downto 0);
+  signal AluTR: std_logic;
   signal TR: std_logic;
+  signal TRData: std_logic;
+  signal UseAluTR: std_logic;
   
   --control signals
   signal InReset: std_logic;
@@ -185,7 +188,7 @@ begin
     DataIn1 => AluIn1,
     DataIn2 => AluIn2,
     DataOut => AluOut,
-    TR => TR
+    TR => AluTR
   );
   fetcheraddress <= regIn(REGCS) & regIn(REGIP);
   MemAddr <= OpAddress when state=WaitForMemory else FetchMemAddr;
@@ -215,7 +218,7 @@ begin
   --UsuallySegment shortcuts (only used when not an immediate
   UsuallyDS <= "1101" when opseges='0' else "1110";
   UsuallySS <= "1111" when opseges='0' else "1110";
-  
+  TR <= TRData when UseAluTR='0' else AluTR;
   
   foo: process(Clock, Hold, state, IR, inreset, reset, regin, regout, IPCarryOut, CSCarryOut)
   begin
@@ -240,6 +243,8 @@ begin
         OpAddress <= x"0000";
         OpWE <= '0';
         opWW <= '0';
+        TRData <= '0';
+        UseAluTR <= '0';
         --finish up
       elsif InReset='1' and reset='0' and Hold='0' then --reset is done, start executing
         InReset <= '0';
@@ -304,7 +309,9 @@ begin
         regWE(REGSP) <= '1';
         regWE(REGSS) <= '1';
         OpAddress <= "ZZZZZZZZZZZZZZZZ";
-        
+        if UseAluTR='1' then
+          UseAluTR<='0';
+        end if;
         --actual decoding
         if opcond1='0' or (opcond1='1' and TR='1') then
           case opmain is 
@@ -320,6 +327,8 @@ begin
               IPAddend <= x"00"; --disable all this because we have to wait a cycle to write memory
               FetchEN <= '0';
             when "0011" => --group 3 comparisons
+              TRData <= AluTR;
+              UseAluTR <= '1';
               AluOp <= "01" & opreg3; --nothing hard here, ALU does it all for us
               AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
               AluIn2 <= regOut(to_integer(unsigned(bankreg2)));

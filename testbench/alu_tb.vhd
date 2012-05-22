@@ -236,12 +236,6 @@ BEGIN
     wait for 10 ns;
     assert (DataOut=x"FE") report "subtract underflow operation error" severity error;
 
-    Op <= "10000"; --set TR
-    wait for 10 ns;
-    Op <= "10011"; --decrement
-    DataIn1 <= x"12";
-    wait for 10 ns;
-    assert (TR='1') report "TR persistence error" severity error;
 
 
 

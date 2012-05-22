@@ -142,7 +142,10 @@ BEGIN
     assert(DebugTR ='0') report "ALU compare is not correct for greater than" severity error;
     MemIn <= "0011000000010010"; --TR=r0 < r1
     wait for 10 ns;
+    MemIn <= x"0F20"; --jmp to 0x20 if TR=1
     assert(DebugTR='1') report "ALU compare is not correct for less than" severity error;
+    wait for 10 ns;
+    assert(DebugIP=x"20") report "conditional TR is not correct after ALU compare" severity error;
 
     --now test bitwise
     MemIn <= x"0E50"; --mov IP, 0x50 -- do this just so we can count IP easily

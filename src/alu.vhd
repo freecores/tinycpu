@@ -23,12 +23,10 @@ entity alu is
 end alu;
 
 architecture Behavioral of alu is
-  signal TRData: std_logic;
 begin
-  TR <= TRData;
   process(DataIn1, DataIn2, Op)
   begin
-    --TRData <='0'; --default
+    TR <= '0';
     case Op is 
 --bitwise operations
       when "00000" => --and
@@ -51,66 +49,66 @@ begin
       when "01000" => --greater than
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) > to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01001" => --greater than or equal
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) >= to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01010" => --less than
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) < to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01011" => --less than or equal
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) <= to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01100" => --equals to
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) = to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01101" => --not equal
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) /= to_integer(unsigned(DataIn2))) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01110" => --equal to 0
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) = 0) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
       when "01111" => --not equal to 0
         DataOut <= "00000000";
         if(to_integer(unsigned(DataIn1)) /= 0) then
-          TRData <= '1';
+          TR <= '1';
         else
-          TRData <= '0';
+          TR <= '0';
         end if;
 --other operations
       when "10000" => --set TR
         DataOut <= "00000000";
-        TRData <= '1';
+        TR <= '1';
       when "10001" => --reset TR
         DataOut <= "00000000";
-        TRData <= '0';
+        TR <= '0';
       when "10010" => --increment
         DataOut <= std_logic_vector(unsigned(DataIn1) + 1); 
       when "10011" => --decrement
@@ -122,7 +120,7 @@ begin
 
       when others => 
         DataOut <= "00000000";
-        TRData <= '1';
+        TR <= '1';
     end case;
   end process;
 end Behavioral;
