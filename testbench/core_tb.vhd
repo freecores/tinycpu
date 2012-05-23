@@ -177,8 +177,24 @@ BEGIN
     assert(MemAddr=x"0200") report "Pop is not fetching from correct address" severity error;
     wait for 10 ns;
     assert(DebugR0=x"20") report "Pop is not assigning to R0 correct" severity error;
-    MemIn <= x"0040";
+    MemIn <= x"0040"; --mov r0, 0x40
     wait for 10 ns;
+    MemIn <= b"0101_0010_0000_0001"; --mov r1,r0
+    wait for 10 ns;
+    MemIn <= b"0101_0000_0001_0010"; --mov r0, [r1]
+    wait for 10 ns;
+    assert(MemAddr=x"0040") report "load operation doesn't fetch from proper address" severity error;
+    MemIn <= x"1234"; --value to be loaded to r0 (lower value only)
+    wait for 10 ns;
+    assert(DebugR0=x"34") report "load operation doesn't load into r0 properly" severity error;
+
+    MemIn <= b"0101_0000_0001_0011"; --mov [r0], r1
+    wait for 10 ns;
+    assert(MemAddr=x"0034") report "store operation doesn't store to proper address" severity error;
+    assert(MemOut=x"0040") report "store operation doesn't have proper value" severity error;
+    wait for 10 ns;
+    MemIn <= x"0010";
+    
 
     -- summary of testbench
     assert false

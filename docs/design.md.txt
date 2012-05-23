@@ -289,7 +289,10 @@ When RESET is held low, the processor will execute. It takes 3 clock cycles for 
 
 
 
-
+Register order: 
+The order of registers is read from left to right with left being the most significant bit of the 16-bit opcode.
+So for instance, 
+0101_*000*0_0*111*_0010 is `mov [r0], IP/r7`. The register portions of the opcode are surrounded by astericks  
 
 
 Implemented opcode list:
@@ -301,15 +304,16 @@ s = segment register choice
 i = immediate data
 N = not used
 o = opcode choice (for groups)
+_ = space for readability
 
-0000 rrrC iiii iiii
+0000_rrrC_iiii_iiii
 mov reg, immediate
 
-0001 rrrC iiii iiii
+0001_rrrC_iiii_iiii
 mov [reg], immediate
 
 group 3 comparions
-0011 rrrC Crrr Nooo
+0011_rrrC_Crrr_Nooo
 opcode choices
 000: is greater than reg1,reg2 (TR=reg1>reg2)
 001: is greater or equal to reg,reg
@@ -321,7 +325,7 @@ opcode choices
 111: not equals 0 reg
 
 group 4 bitwise
-0100 rrrC Crrr Nooo
+0100_rrrC_Crrr_Nooo
 opcode choices
 000: and reg1,reg2 (reg1=reg1 and reg2)
 001: or reg, reg
@@ -333,14 +337,13 @@ opcode choices
 111: rotate left reg,reg
 
 group 5 misc
-0101 rrrC CRRR sooo
+0101_rrrC_CRRR_sooo
 opcode choices:
 000: subgroup 5-0
   RRR choices:
   000: push reg
   001: pop reg
-
 001: mov reg, reg
-
-
+010: mov reg, [reg]
+011: mov [reg], reg
 

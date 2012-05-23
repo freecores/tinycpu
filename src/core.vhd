@@ -393,6 +393,21 @@ begin
                 when "001" => --mov reg, reg
                   regIn(to_integer(unsigned(bankreg1))) <= regOut(to_integer(unsigned(bankreg2)));
                   regWE(to_integer(unsigned(bankreg1))) <= '1';
+                when "010" => --mov reg, [reg] (load)
+                  OpDestReg1 <= bankreg1;
+                  OpWE <= '0';
+                  OpAddress <= regOut(to_integer(unsigned(UsuallyDS))) & regOut(to_integer(unsigned(bankreg2)));
+                  IpAddend <= x"00";
+                  FetchEN <= '0';
+                  state <= WaitForMemory;
+                when "011" => --mov [reg], reg (store)
+                  OpDataOut <= x"00" & regOut(to_integer(unsigned(bankreg2)));
+                  OpWW <= '0';
+                  OpWE <= '1';
+                  OpAddress <= regOut(to_integer(unsigned(UsuallyDS))) & regOut(to_integer(unsigned(bankreg1)));
+                  IpAddend <= x"00";
+                  FetchEN <= '0';
+                  state <= WaitForMemory;
                 when others =>
                   --synthesis off
                   report "Not implemented group 5" severity error;
