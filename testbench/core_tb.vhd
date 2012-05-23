@@ -162,7 +162,20 @@ BEGIN
     MemIn <= x"0070"; --mov r0, 0x70 -- for debugging
     wait for 10 ns;
     assert( MemAddr=x"0158") report "IP increment is wrong after WaitForAlu" severity error;
-
+    MemIn <= "0101000000000000"; --push r0
+    wait for 10 ns;
+    assert(MemAddr=x"0200" and MemOut=x"0070") report "push is not correct" severity error;
+    wait for 10 ns;
+    
+    MemIn <= "0101000000010000"; --pop r0 
+    assert(MemAddr=x"015A") report "IP increment is wrong after push" severity error;
+    wait for 10 ns;
+    MemIn <= x"0020"; --the value to be popped into r0
+    assert(MemAddr=x"0200") report "Pop is not fetching from correct address" severity error;
+    wait for 10 ns;
+    assert(DebugR0=x"20") report "Pop is not assigning to R0 correct" severity error;
+    MemIn <= x"0040";
+    wait for 10 ns;
 
     -- summary of testbench
     assert false

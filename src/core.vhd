@@ -123,9 +123,13 @@ architecture Behavioral of core is
   --control signals
   signal InReset: std_logic;
   signal OpAddress: std_logic_vector(15 downto 0); --memory address to use for operation of an instruction
-  signal OpData: std_logic_vector(15 downto 0); --data to write or will load to here
+  signal OpDataIn: std_logic_vector(15 downto 0); 
+  signal OpDataOut: std_logic_vector(15 downto 0);
   signal OpWW: std_logic;
   signal OpWE: std_logic;
+  signal OpDestReg1: std_logic_vector(3 downto 0);
+  signal OpUseReg2: std_logic;
+  signal OpDestReg2: std_logic_vector(3 downto 0);
 
   --opcode shortcut signals
   signal opmain: std_logic_vector(3 downto 0);
@@ -149,7 +153,7 @@ architecture Behavioral of core is
 
   signal UsuallySS: std_logic_vector(3 downto 0);
   signal UsuallyDS: std_logic_vector(3 downto 0);
-  signal aluregisterout: std_logic_vector(3 downto 0);
+  signal AluRegOut: std_logic_vector(3 downto 0);
 begin
   reg: registerfile port map(
     WriteEnable => regWE,
@@ -192,10 +196,10 @@ begin
   );
   fetcheraddress <= regIn(REGCS) & regIn(REGIP);
   MemAddr <= OpAddress when state=WaitForMemory else FetchMemAddr;
-  MemOut <= OpData when (state=WaitForMemory and OpWE='1') else "ZZZZZZZZZZZZZZZZ" when state=HoldMemory else x"0000";
+  MemOut <= OpDataOut when (state=WaitForMemory and OpWE='1') else "ZZZZZZZZZZZZZZZZ" when state=HoldMemory else x"0000";
   MemWE <= OpWE when state=WaitForMemory else 'Z' when state=HoldMemory else '0';
   MemWW <= OpWW when state=WaitForMemory else 'Z' when state=HoldMEmory else '0';
-  OpData <= MemIn when (state=WaitForMemory and OpWE='0') else "ZZZZZZZZZZZZZZZZ";
+  OpDataIn <= MemIn;
   --opcode shortcuts
   opmain <= IR(15 downto 12);
   opimmd <= IR(7 downto 0);
@@ -234,17 +238,21 @@ begin
         regWE <= (others => '1');
         regIn <= (others => "00000000");
         regIn(REGCS) <= x"01";
+        regIn(REGSS) <= x"02";
         IPAddend <= x"00";
         SPAddend <= x"00";
         AluOp <= "10001"; --reset TR in ALU
         regbank <= '0';
         fetchEN <= '1';
-        OpData <= "ZZZZZZZZZZZZZZZZ";
+        OpDataOut <= "ZZZZZZZZZZZZZZZZ";
         OpAddress <= x"0000";
         OpWE <= '0';
         opWW <= '0';
         TRData <= '0';
         UseAluTR <= '0';
+        OpDestReg1<= x"0";
+        OpDestReg2 <= x"0";
+        OpUseReg2 <= '0';
         --finish up
       elsif InReset='1' and reset='0' and Hold='0' then --reset is done, start executing
         InReset <= '0';
@@ -284,10 +292,18 @@ begin
         FetchEn <= '1';
         IpAddend <= x"02";
         SpAddend <= x"00";
+        if OpWE='0' then
+          regIn(to_integer(unsigned(OpDestReg1))) <= OpDataIn(7 downto 0);
+          regWE(to_integer(unsigned(OpDestReg1))) <= '1';
+          if OpUseReg2='1' then
+            regIn(to_integer(unsigned(OpDestReg2))) <= OpDataIn(15 downto 8);
+            regWE(to_integer(unsigned(OpDestReg2))) <= '1';
+          end if;
+        end if;
       elsif state=WaitForAlu then
         state <= Execute;
-        regIn(to_integer(unsigned(AluRegisterOut))) <= AluOut;
-        regWE(to_integer(unsigned(AluRegisterOut))) <= '1';
+        regIn(to_integer(unsigned(AluRegOut))) <= AluOut;
+        regWE(to_integer(unsigned(AluRegOut))) <= '1';
         FetchEN <= '1';
         IPAddend <= x"02";
         SPAddend <= x"00";
@@ -308,6 +324,7 @@ begin
         regIn(REGSS) <= SSCarryOut;
         regWE(REGSP) <= '1';
         regWE(REGSS) <= '1';
+        OpUseReg2 <= '0';
         OpAddress <= "ZZZZZZZZZZZZZZZZ";
         if UseAluTR='1' then
           UseAluTR<='0';
@@ -321,7 +338,7 @@ begin
             when "0001" => --mov [reg],imm
               OpAddress <= regOut(REGDS) & regOut(to_integer(unsigned(bankreg1)));
               OpWE <= '1';
-              OpData <= x"00" & opimmd;
+              OpDataOut <= x"00" & opimmd;
               OpWW <= '0';
               state <= WaitForMemory;
               IPAddend <= x"00"; --disable all this because we have to wait a cycle to write memory
@@ -340,7 +357,7 @@ begin
               AluOp <= "00" & opreg3; --nothing hard here, ALU does it all for us
               AluIn1 <= regOut(to_integer(unsigned(bankreg1)));
               AluIn2 <= regOut(to_integer(unsigned(bankreg2)));
-              AluRegisterOut <= bankreg1;
+              AluRegOut <= bankreg1;
               --regIn(to_integer(unsigned(bankreg1))) <= AluOut;
               --regWE(to_integer(unsigned(bankreg1))) <= '1';
            when "0101" => --group 5
@@ -351,7 +368,7 @@ begin
                       SpAddend <= x"02"; --set SP to increment
                       OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & regOut(REGSP);
                       OpWE <= '1';
-                      OpData <= x"00" & regOut(to_integer(unsigned(bankreg1)));
+                      OpDataOut <= x"00" & regOut(to_integer(unsigned(bankreg1)));
                       OpWW <= '1';
                       state <= WaitForMemory;
                       IPAddend <= x"00";
@@ -360,7 +377,8 @@ begin
                       SPAddend <= x"FE"; --set SP to decrement
                       OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & regOut(REGSP);
                       OpWE <= '0';
-                      regIn(to_integer(unsigned(bankreg1))) <= OpData(7 downto 0);
+                      OpDestReg1 <= bankreg1;
+                      --regIn(to_integer(unsigned(bankreg1))) <= OpData(7 downto 0);
                       OpWW <= '0';
                       state <= WaitForMemory;
                       IPAddend <= x"00";
