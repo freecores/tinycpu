@@ -166,9 +166,12 @@ BEGIN
     wait for 10 ns;
     assert(MemAddr=x"0200" and MemOut=x"0070") report "push is not correct" severity error;
     wait for 10 ns;
+    MemIn <= "0101000001100001"; --mov r0, SP
+    wait for 10 ns;
+    assert(Debugr0 = x"02") report "SP is not correct" severity error;
     
     MemIn <= "0101000000010000"; --pop r0 
-    assert(MemAddr=x"015A") report "IP increment is wrong after push" severity error;
+    assert(MemAddr=x"015C") report "IP increment is wrong after push" severity error;
     wait for 10 ns;
     MemIn <= x"0020"; --the value to be popped into r0
     assert(MemAddr=x"0200") report "Pop is not fetching from correct address" severity error;

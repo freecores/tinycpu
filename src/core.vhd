@@ -291,7 +291,12 @@ begin
         state <= Execute;
         FetchEn <= '1';
         IpAddend <= x"02";
-        SpAddend <= x"00";
+        --SpAddend <= x"00";
+        --SP can change here... really I don't *think* it can change from within Execute... so maybe that's redundant
+        regIn(REGSP) <= SPCarryOut; --with addend being 0, it'll just write SP to SP so it won't change, but this makes code easier for me
+        regIn(REGSS) <= SSCarryOut;
+        regWE(REGSP) <= '1';
+        regWE(REGSS) <= '1';
         if OpWE='0' then
           regIn(to_integer(unsigned(OpDestReg1))) <= OpDataIn(7 downto 0);
           regWE(to_integer(unsigned(OpDestReg1))) <= '1';
@@ -320,10 +325,6 @@ begin
         regWE(REGIP) <= '1';
         regWE(REGCS) <= '1';
         regIn(REGCS) <= CSCarryOut;
-        regIn(REGSP) <= SPCarryOut; --with addend being 0, it'll just write SP to SP so it won't change, but this makes code easier for me
-        regIn(REGSS) <= SSCarryOut;
-        regWE(REGSP) <= '1';
-        regWE(REGSS) <= '1';
         OpUseReg2 <= '0';
         OpAddress <= "ZZZZZZZZZZZZZZZZ";
         if UseAluTR='1' then
@@ -375,7 +376,8 @@ begin
                       FetchEN <= '0';
                     when "001" => --pop reg
                       SPAddend <= x"FE"; --set SP to decrement
-                      OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & regOut(REGSP);
+                      --TODO account for carryover properties
+                      OpAddress <= regOut(to_integer(unsigned(UsuallySS))) & std_logic_vector(unsigned(regOut(REGSP))-2); --decrement 2 here "early" 
                       OpWE <= '0';
                       OpDestReg1 <= bankreg1;
                       --regIn(to_integer(unsigned(bankreg1))) <= OpData(7 downto 0);
@@ -388,6 +390,9 @@ begin
                       report "Not implemented subgroup 5-0" severity error;
                       --synthesis on
                   end case;
+                when "001" => --mov reg, reg
+                  regIn(to_integer(unsigned(bankreg1))) <= regOut(to_integer(unsigned(bankreg2)));
+                  regWE(to_integer(unsigned(bankreg1))) <= '1';
                 when others =>
                   --synthesis off
                   report "Not implemented group 5" severity error;

@@ -340,5 +340,7 @@ opcode choices:
   000: push reg
   001: pop reg
 
+001: mov reg, reg
+
 
 
