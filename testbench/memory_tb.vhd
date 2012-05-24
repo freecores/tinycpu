@@ -16,7 +16,8 @@ ARCHITECTURE behavior OF memory_tb IS
       WriteEnable: in std_logic;
       Clock: in std_logic;
       DataIn: in std_logic_vector(15 downto 0);
-      DataOut: out std_logic_vector(15 downto 0)
+      DataOut: out std_logic_vector(15 downto 0);
+      Port0: inout std_logic_vector(7 downto 0)
     );
   end component;
     
@@ -30,6 +31,9 @@ ARCHITECTURE behavior OF memory_tb IS
   --Outputs
   signal DataOut: std_logic_vector(15 downto 0);
 
+  --inouts
+  signal Port0: std_logic_vector(7 downto 0);
+
   signal Clock: std_logic;
   constant clock_period : time := 10 ns;
  
@@ -42,7 +46,8 @@ BEGIN
     WriteEnable => WriteEnable,
     Clock => Clock,
     DataIn => DataIn,
-    DataOut => DataOut
+    DataOut => DataOut,
+    Port0 => Port0
   );
 
   -- Clock process definitions
@@ -62,7 +67,7 @@ BEGIN
     wait for 50 ns;    
 
     
-    Address <= x"0000";
+    Address <= x"0100";
     WriteWord <= '1';
     WriteEnable <='1';
     DataIn <= x"1234";
@@ -72,7 +77,7 @@ BEGIN
     wait for 10 ns;
     assert (DataOut = x"1234") report "Basic storage failure" severity error;
     
-    Address <= x"0022";
+    Address <= x"0122";
     WriteWord <= '1';
     WriteEnable <= '1';
     DataIn <= x"5215";
@@ -80,21 +85,21 @@ BEGIN
     assert (DataOut = x"1234") report "no-change block ram failure" severity error;
     WriteWord <= '0';
     WriteEnable <= '0';
-    Address <= x"0000";
+    Address <= x"0100";
     wait for 10 ns;
     assert( DataOut = x"1234") report "Memory retention failure" severity error;
-    Address <= x"0022";
+    Address <= x"0122";
     wait for 10 ns;
     assert( DataOut = x"5215") report "memory timing is too slow" severity error;
     
-    Address <= x"0010";
+    Address <= x"0110";
     WriteWord <= '1';
     WriteEnable <= '1';
     DataIn <= x"1234";
     wait for 10 ns;
     WriteWord <= '0';
     WriteEnable <= '0';
-    Address <= x"0011";
+    Address <= x"0111";
     wait for 10 ns;
     assert (DataOut = x"0012") report "unaligned 8-bit memory read is wrong" severity error;
     WriteWord <='0';
@@ -104,7 +109,7 @@ BEGIN
     WriteEnable <= '0';
     wait for 10 ns;
     assert (DataOut = x"0056") report "unaligned 8 bit memory write and then read is wrong" severity error;
-    Address <= x"0010";
+    Address <= x"0110";
     wait for 10 ns;
     assert (DataOut = x"5634") report "aligned memory read after unaligned write is wrong" severity error;
     WriteEnable <= '1';
@@ -113,6 +118,21 @@ BEGIN
     WriteEnable <= '0';
     wait for 10 ns;
     assert (DataOut = x"5678") report "aligned 8-bit memory write is wrong" severity error;
+
+    Address <= x"0001";
+    WriteWord <= '0';
+    WriteEnable <= '1';
+    DataIn <= b"00000000_0011_1000";
+    wait for 10 ns;
+    Address <= x"0000";
+    Port0 <= "10ZZZ101";
+    DataIn <= x"00" & b"00_101_011";
+    wait for 10 ns;
+    WriteEnable <= '0';
+    wait for 10 ns;
+    assert(Port0 = "10101101") report "Memory mapped port does not work correctly" severity error;
+    assert(DataOut = x"00" & "10101101") report "Memory read of mapped port does not work correctly" severity error;
+    
 
    assert false
    report "Testbench of memory completed successfully!"

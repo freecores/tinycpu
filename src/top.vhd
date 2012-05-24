@@ -19,6 +19,7 @@ entity top is
     Address: in std_logic_vector(15 downto 0); --memory address (in bytes)
     WriteEnable: in std_logic;
     Data: inout std_logic_vector(15 downto 0);
+    Port0: inout std_logic_vector(7 downto 0);
     --debug ports
     DebugR0: out std_logic_vector(7 downto 0)
   );
@@ -33,7 +34,8 @@ architecture Behavioral of top is
       WriteEnable: in std_logic;
       Clock: in std_logic;
       DataIn: in std_logic_vector(15 downto 0);
-      DataOut: out std_logic_vector(15 downto 0)
+      DataOut: out std_logic_vector(15 downto 0);
+      Port0: inout std_logic_vector(7 downto 0)
     );
   end component;
 
@@ -99,7 +101,8 @@ begin
     WriteEnable => MemWriteEnable,
     Clock => Clock,
     DataIn => MemDataIn,
-    DataOut => MemDataOut
+    DataOut => MemDataOut,
+    Port0 => Port0
   );
 
   MemAddress <= cpuaddr when DMA='0' else Address;

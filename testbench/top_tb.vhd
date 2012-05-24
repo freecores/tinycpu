@@ -19,6 +19,7 @@ ARCHITECTURE behavior OF top_tb IS
       Address: in std_logic_vector(15 downto 0); --memory address (in bytes)
       WriteEnable: in std_logic;
       Data: inout std_logic_vector(15 downto 0);
+      Port0: inout std_logic_vector(7 downto 0);
       --debug ports
       DebugR0: out std_logic_vector(7 downto 0)
     );
@@ -32,6 +33,7 @@ ARCHITECTURE behavior OF top_tb IS
   signal Address: std_logic_vector(15 downto 0):=x"0000"; --memory address (in bytes)
   signal WriteEnable: std_logic:='0';
   signal Data: std_logic_vector(15 downto 0):=x"0000";
+  signal Port0: std_logic_vector(7 downto 0);
   --debug ports
   signal DebugR0: std_logic_vector(7 downto 0);
 
@@ -50,7 +52,8 @@ BEGIN
     Address => Address,
     WriteEnable => WriteEnable,
     Data => Data,
-    DebugR0 => DebugR0
+    DebugR0 => DebugR0,
+    Port0 => Port0
   );
 
   -- Clock process definitions

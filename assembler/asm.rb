@@ -17,6 +17,7 @@ class OpcodeByte1
     end
   end
 end
+
   
 
 class Register8
@@ -27,6 +28,7 @@ class Register8
 end
 
 $iftr = 0; #0 for no condition, 1 for if TR, 2 for if not TR
+$useextra = 0;
 
 def mov_r8_imm8(reg,imm)
   o = OpcodeByte1.new();
@@ -40,9 +42,33 @@ def mov_r8_imm8(reg,imm)
   puts PREFIX + o.to_hex + imm.to_s(16) + SUFFIX;
   puts SEPERATOR;
 end
+def mov_rm8_imm8(reg,imm)
+  o=OpcodeByte1.new();
+  o.op=1;
+  o.register=reg;
+  if $iftr<2 then
+    o.cond=$iftr;
+  else
+    raise "if_tr_notset is not allowed with this opcode";
+  end
+  puts PREFIX + o.to_hex + imm.to_s(16) + SUFFIX;
+  puts SEPERATOR;
+end
+  
 
 def mov(arg1,arg2)
-  if arg1.kind_of? Register8 and arg2.kind_of? Integer and arg2<0x100 then mov_r8_imm8 arg1,arg2 end
+  if arg1.kind_of? Register8 and arg2.kind_of? Integer and arg2<0x100 then
+    mov_r8_imm8 arg1,arg2 
+  elsif arg1.kind_of? Array and arg2.kind_of? Integer and arg2<0x100 then
+    if arg1.length>1 or arg1.length<1 then
+      raise "memory reference is not correct. Only a register is allowed";
+    end
+    reg=arg1[0];
+    mov_rm8_imm8 reg, arg2
+  else
+    raise "No suitable mov opcode found";
+  end
+    
 end
 def if_tr_set
   $iftr = 1
@@ -61,3 +87,4 @@ if_tr_set{
   mov r1,0x10
 }
 mov r1,0x20
+mov [r1], 0x50

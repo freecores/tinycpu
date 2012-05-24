@@ -16,7 +16,9 @@ entity memory is
     WriteEnable: in std_logic;
     Clock: in std_logic;
     DataIn: in std_logic_vector(15 downto 0);
-    DataOut: out std_logic_vector(15 downto 0)
+    DataOut: out std_logic_vector(15 downto 0);
+
+    Port0: inout std_logic_vector(7 downto 0)
 --    Reset: in std_logic
     
     --RAM/ROM interface (RAMA is built in to here
@@ -40,8 +42,8 @@ architecture Behavioral of memory is
     );
   end component;
 
-  constant R1START: integer := 0;
-  constant R1END: integer := 1023;
+  constant R1START: integer := 15;
+  constant R1END: integer := 1023+15;
   signal addr: std_logic_vector(15 downto 0) := (others => '0');
   signal R1addr: std_logic_vector(7 downto 0);
   signal we: std_logic_vector(1 downto 0);
@@ -52,6 +54,9 @@ architecture Behavioral of memory is
   signal R1en: std_logic;
   signal R1in: std_logic_vector(15 downto 0);
   signal R1out: std_logic_vector(15 downto 0);
+
+  signal port0we: std_logic_vector(7 downto 0);
+  signal port0temp: std_logic_vector(7 downto 0);
 begin
   R1: blockram port map (R1addr, R1we, R1en, Clock, R1in, R1out);
   addrwe: process(Address, WriteWord, WriteEnable, DataIn)
@@ -76,12 +81,56 @@ begin
     end if;
   end process;
   
-  assignram: process (we, datawrite, addr, r1out)
+  assignram: process (we, datawrite, addr, r1out, port0, WriteEnable, Address)
   variable tmp: integer;
+  variable tmp2: integer;
   variable found: boolean := false;
   begin
     tmp := to_integer(unsigned(addr));
-    if tmp >= R1START and tmp <= R1END then
+    tmp2 := to_integer(unsigned(Address));
+    if tmp2 <= 15 then --internal registers/mapped IO
+      if WriteWord='0' then
+        if tmp2=0 then
+          dataread <= x"0000";
+          gen: for I in 0 to 7 loop
+            if WriteEnable='1' then
+              if port0we(I)='1' then --1-bit port set to WRITE mode
+                port0(I) <= DataIn(I);
+                port0temp(I) <= DataIn(I);
+              else
+                port0(I) <= 'Z';
+              end if;
+            else --not WE
+              if port0we(I)='0' then --1-bit-port set to READ mode
+                dataread(I) <= port0(I);
+              else
+                dataread(I) <= port0temp(I);
+              end if;
+            end if;
+          end loop gen;
+        elsif tmp2=1 then
+          dataread <= x"00" & port0we;
+          if WriteEnable='1' then
+            port0we <= DataIn(7 downto 0);
+            setwe: for I in 0 to 7 loop
+              if DataIn(I)='0' then
+                port0(I) <= 'Z';
+              end if;
+            end loop setwe;
+          else
+            dataread <= x"00" & port0we;
+          end if;
+        else
+          --synthesis off
+          report "Memory address is outside of bounds of RAM and registers" severity warning;
+          --synthesis on
+        end if;
+      else
+        --synthesis off
+        report "WriteWord is not allowed in register area. Ignoring access" severity warning;
+        --synthesis on
+      end if;
+    elsif tmp >= R1START and tmp <= R1END then --RAM bank1
       --map all to R1
       found := true;
       R1en <= '1';
@@ -106,5 +155,4 @@ begin
       DataOut <= x"00" & dataread(15 downto 8);
     end if;
   end process;
-  
 end Behavioral;
