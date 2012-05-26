@@ -18,12 +18,31 @@ class OpcodeByte1
   end
 end
 
+class OpcodeByte2
+  attr_accessor :cond, :reg2, :useextra, :reg3;
+  def to_hex
+    s=(cond << 8 | reg2.number << 5 | useextra << 4 | reg3.number).to_s(16);
+    if s.length == 1
+      "0"+s;
+    elsif s.length==0
+      "00";
+    else
+      s;
+    end
+  end
+end
   
 
 class Register8
   attr_accessor :number
   def initialize(num)
 	@number=num
+  end
+end
+class OpcodeOption
+  attr_accessor :number
+  def initialize(num)
+    @number=num;
   end
 end
 
@@ -54,6 +73,7 @@ def mov_rm8_imm8(reg,imm)
   puts PREFIX + o.to_hex + imm.to_s(16) + SUFFIX;
   puts SEPERATOR;
 end
+def 
   
 
 def mov(arg1,arg2)
@@ -81,6 +101,11 @@ r0=Register8.new(0)
 r1=Register8.new(1)
 r2=Register8.new(2)
 r3=Register8.new(3)
+r4=Register8.new(4)
+r5=Register8.new(5)
+sp=Register8.new(6)
+ip=Register8.new(7)
+
 
 #test code follows. Only do it here for convenience.. real usage should prefix assembly files with `require "asm.rb"` 
 if_tr_set{

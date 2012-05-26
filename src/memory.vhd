@@ -81,7 +81,7 @@ begin
     end if;
   end process;
   
-  assignram: process (we, datawrite, addr, r1out, port0, WriteEnable, Address)
+  assignram: process (we, datawrite, addr, r1out, port0, WriteEnable, Address, Clock)
   variable tmp: integer;
   variable tmp2: integer;
   variable found: boolean := false;
@@ -89,47 +89,55 @@ begin
     tmp := to_integer(unsigned(addr));
     tmp2 := to_integer(unsigned(Address));
     if tmp2 <= 15 then --internal registers/mapped IO
-      if WriteWord='0' then
-        if tmp2=0 then
-          dataread <= x"0000";
-          gen: for I in 0 to 7 loop
-            if WriteEnable='1' then
-              if port0we(I)='1' then --1-bit port set to WRITE mode
-                port0(I) <= DataIn(I);
-                port0temp(I) <= DataIn(I);
-              else
-                port0(I) <= 'Z';
+      if rising_edge(Clock) then
+        if WriteWord='0' then
+          if tmp2=0 then
+            dataread <= x"0000";
+            
+            gen: for I in 0 to 7 loop
+              if WriteEnable='1' then
+                if port0we(I)='1' then --1-bit port set to WRITE mode
+                  port0(I) <= DataIn(I);
+                  port0temp(I) <= DataIn(I);
+                else
+                  port0(I) <= 'Z';
+                end if;
+              else --not WE
+                if port0we(I)='0' then --1-bit-port set to READ mode
+                  dataread(I) <= port0(I);
+                else
+                  dataread(I) <= port0temp(I);
+                end if;
               end if;
-            else --not WE
-              if port0we(I)='0' then --1-bit-port set to READ mode
-                dataread(I) <= port0(I);
-              else
-                dataread(I) <= port0temp(I);
-              end if;
-            end if;
-          end loop gen;
-        elsif tmp2=1 then
-          dataread <= x"00" & port0we;
-          if WriteEnable='1' then
-            port0we <= DataIn(7 downto 0);
-            setwe: for I in 0 to 7 loop
-              if DataIn(I)='0' then
-                port0(I) <= 'Z';
-              end if;
-            end loop setwe;
-          else
+            end loop gen;
+          elsif tmp2=1 then
             dataread <= x"00" & port0we;
+            if WriteEnable='1' then
+              port0we <= DataIn(7 downto 0);
+              setwe: for I in 0 to 7 loop
+                if DataIn(I)='0' then
+                  port0(I) <= 'Z';
+                end if;
+              end loop setwe;
+            else
+              dataread <= x"00" & port0we;
+            end if;
+          else
+            --synthesis off
+            report "Memory address is outside of bounds of RAM and registers" severity warning;
+            --synthesis on
           end if;
+        
         else
           --synthesis off
-          report "Memory address is outside of bounds of RAM and registers" severity warning;
+          report "WriteWord is not allowed in register area. Ignoring access" severity warning;
           --synthesis on
         end if;
-      else
-        --synthesis off
-        report "WriteWord is not allowed in register area. Ignoring access" severity warning;
-        --synthesis on
       end if;
+      R1en <= '0';
+      R1we <= "00";
+      R1in <= x"0000";
+      R1addr <= x"00";
     elsif tmp >= R1START and tmp <= R1END then --RAM bank1
       --map all to R1
       found := true;
