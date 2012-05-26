@@ -63,6 +63,14 @@ architecture Behavioral of top is
       DebugR0: out std_logic_vector(7 downto 0)
     );
   end component;
+  component bootrom is
+    port(
+        CLK : in std_logic;
+        EN : in std_logic;
+        ADDR : in std_logic_vector(4 downto 0);
+        DATA : out std_logic_vector(15 downto 0)
+    );
+  end component;
   signal cpuaddr: std_logic_vector(15 downto 0);
   signal cpuww: std_logic;
   signal cpuwe: std_logic;
@@ -78,6 +86,13 @@ architecture Behavioral of top is
   signal MemWriteEnable: std_logic;
   signal MemDataIn: std_logic_vector(15 downto 0);
   signal MemDataOut: std_logic_vector(15 downto 0);
+
+  signal BootAddress: std_logic_vector(4 downto 0);
+  signal BootDataIn: std_logic_vector(15 downto 0);
+  signal BootDataOut: std_logic_vector(15 downto 0);
+  signal BootDone: std_logic;
+  constant ROMSIZE: integer := 64;
+  signal counter: std_logic_vector(4 downto 0);
 begin
   cpu: core port map (
     MemAddr => cpuaddr,
@@ -104,12 +119,35 @@ begin
     DataOut => MemDataOut,
     Port0 => Port0
   );
-
-  MemAddress <= cpuaddr when DMA='0' else Address;
-  MemWriteWord <= cpuww when DMA='0' else '1';
-  MemWriteEnable <= cpuwe when DMA='0' else WriteEnable;
-  MemDataIn <= cpumemout when DMA='0' else Data when WriteEnable='1' else "ZZZZZZZZZZZZZZZZ";
+  rom: bootrom port map(
+    clk => clock,
+    EN => '1',
+    Addr => BootAddress,
+    Data => BootDataOut
+  );
+  MemAddress <= cpuaddr when (DMA='0' and Reset='0') else "00000001000" & BootAddress when (Reset='1' and DMA='0') else Address;
+  MemWriteWord <= cpuww when DMA='0' and Reset='0' else '1' when Reset='1'  and DMA='0' else '1';
+  MemWriteEnable <= cpuwe when DMA='0' and Reset='0' else'1'  when Reset='1' and DMA='0' else WriteEnable;
+  MemDataIn <= cpumemout when DMA='0' and Reset='0' else Data when WriteEnable='1' else BootDataIn when Reset='1' and DMA='0' else "ZZZZZZZZZZZZZZZZ";
   cpumemin <= MemDataOut;
-  Data <= MemDataOut when DMA='1' and WriteEnable='0' else "ZZZZZZZZZZZZZZZZ";
-
+  Data <= MemDataOut when DMA='1' and Reset='0' and WriteEnable='0' else "ZZZZZZZZZZZZZZZZ";
+  
+  bootload: process(Clock, Reset)
+  begin
+    if rising_edge(clock) then
+      if Reset='0' then
+        counter <= "00000";
+        BootDone <= '0';
+      elsif Reset='1' and BootDone='0' then
+        BootAddress <= counter;
+        BootDataIn <= BootDataOut;
+        counter <= std_logic_vector(unsigned(counter) + 1);
+        if to_integer(unsigned(counter))>=(ROMSIZE/2-1) then
+          BootDone <= '1';
+        end if;
+      else
+        
+      end if;
+    end if;
+  end process;
 end Behavioral;

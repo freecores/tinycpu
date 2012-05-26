@@ -71,8 +71,10 @@ BEGIN
     variable err_cnt: integer :=0;
   begin         
     -- hold reset state for 100 ns.
+    Reset <= '0';
+    wait for 10 ns;
     Reset <= '1';
-    wait for 20 ns;
+    wait for 200 ns;
     Hold <= '1';
     wait for 10 ns;
     assert (HoldAck ='1') report "HoldAck not becoming high" severity error;

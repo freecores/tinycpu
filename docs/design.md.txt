@@ -6,6 +6,16 @@ This is the design of TinyCPU. It's goals are as follows:
 4. use a small amount of "rich" instructions to do powerful things
 5. 1 instruction per clock cycle
 
+I/O: 
+I/O has been decided to use a memory mapped approach.
+Howto: 
+
+Basically, absolute address 0-32 is reserved for ports. Right now there is only a Port0. This port is 8-bits long. 
+Each even address is the port address. Each odd address is the bitmap for write or read for the port below it.
+
+So to make ports 7 to 4 write and 3 to 0 read, you'd assign 0xF0 to address 0x0001
+
+
 
 BIG CHANGE:
 So, apparently making a single-cycle CPU is extremely hard... so instead, we'll be striving for a 2-cycle CPU.
@@ -346,4 +356,8 @@ opcode choices:
 001: mov reg, reg
 010: mov reg, [reg]
 011: mov [reg], reg
+
+
+
+
 
