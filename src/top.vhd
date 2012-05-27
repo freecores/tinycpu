@@ -88,9 +88,11 @@ architecture Behavioral of top is
   signal MemDataOut: std_logic_vector(15 downto 0);
 
   signal BootAddress: std_logic_vector(4 downto 0);
+  signal BootMemAddress: std_logic_vector(15 downto 0);
   signal BootDataIn: std_logic_vector(15 downto 0);
   signal BootDataOut: std_logic_vector(15 downto 0);
   signal BootDone: std_logic;
+  signal BootFirst: std_logic;
   constant ROMSIZE: integer := 64;
   signal counter: std_logic_vector(4 downto 0);
 begin
@@ -125,24 +127,33 @@ begin
     Addr => BootAddress,
     Data => BootDataOut
   );
-  MemAddress <= cpuaddr when (DMA='0' and Reset='0') else "00000001000" & BootAddress when (Reset='1' and DMA='0') else Address;
+  MemAddress <= cpuaddr when (DMA='0' and Reset='0') else BootMemAddress when (Reset='1' and DMA='0') else Address;
   MemWriteWord <= cpuww when DMA='0' and Reset='0' else '1' when Reset='1'  and DMA='0' else '1';
   MemWriteEnable <= cpuwe when DMA='0' and Reset='0' else'1'  when Reset='1' and DMA='0' else WriteEnable;
   MemDataIn <= cpumemout when DMA='0' and Reset='0' else Data when WriteEnable='1' else BootDataIn when Reset='1' and DMA='0' else "ZZZZZZZZZZZZZZZZ";
   cpumemin <= MemDataOut;
   Data <= MemDataOut when DMA='1' and Reset='0' and WriteEnable='0' else "ZZZZZZZZZZZZZZZZ";
-  
   bootload: process(Clock, Reset)
   begin
     if rising_edge(clock) then
       if Reset='0' then
         counter <= "00000";
         BootDone <= '0';
+        BootAddress <= "00000";
+        BootDataIn <= BootDataOut;
+        BootFirst <= '1';
+      elsif Reset='1' and BootFirst='1' then
+        BootMemAddress <= "00000001000" & "00000";
+        BootAddress <= "00001";
+        --BootDataIn <= BootDataOut;
+        counter <= "00001";
+        BootFirst <= '0';
       elsif Reset='1' and BootDone='0' then
-        BootAddress <= counter;
+        BootMemAddress <= "0000000100" & std_logic_vector(unsigned(counter)-1) & "0";
+        BootAddress <= std_logic_vector(unsigned(counter) + 1);
         BootDataIn <= BootDataOut;
         counter <= std_logic_vector(unsigned(counter) + 1);
-        if to_integer(unsigned(counter))>=(ROMSIZE/2-1) then
+        if to_integer(unsigned(counter))>=(ROMSIZE/2-2) then
           BootDone <= '1';
         end if;
       else

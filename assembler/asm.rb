@@ -21,7 +21,7 @@ end
 class OpcodeByte2
   attr_accessor :cond, :reg2, :useextra, :reg3;
   def to_hex
-    s=(cond << 8 | reg2.number << 5 | useextra << 4 | reg3.number).to_s(16);
+    s=(cond << 7 | reg2.number << 4 | useextra << 3 | reg3.number).to_s(16);
     if s.length == 1
       "0"+s;
     elsif s.length==0

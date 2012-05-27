@@ -75,6 +75,25 @@ BEGIN
     wait for 10 ns;
     Reset <= '1';
     wait for 200 ns;
+    Reset <= '0';
+    wait for 50 ns;
+    Port0(1) <= '1';
+    wait for 100 ns;
+    assert(Port0(0)='1') report "Toggle app not working" severity error;
+    wait for 10 ns;
+    Port0(0) <= '0';
+    wait for 100 ns;
+    assert(Port0(0)='0') report "Toggle app not working 2" severity error;
+
+
+
+
+
+
+
+    Reset <= '1';
+    wait for 100 ns;
+    wait for 10 ns;
     Hold <= '1';
     wait for 10 ns;
     assert (HoldAck ='1') report "HoldAck not becoming high" severity error;
