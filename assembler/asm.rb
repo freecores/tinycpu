@@ -195,7 +195,7 @@ def mov(arg1,arg2)
     if arg2.length>1 or arg2.length<1 or not arg2[0].kind_of? Register8 then
       raise "memory reference is not correct. Only a register is allowed";
     end
-    mov_mreg_reg arg1,arg2[0]
+    mov_reg_mreg arg1,arg2[0]
   elsif arg1.kind_of? Register8 and arg2.kind_of? Register8 then
     mov_reg_reg arg1, arg2
   else
@@ -314,11 +314,11 @@ def Label
   end
 end
 $labellist={}
-def label(name)
+def new_label(name)
   $labellist[name.to_s]=$position;
 end
 def lbl(name)
-  $labellist[name.to_s]=$position;
+  $labellist[name.to_s];
 end
   
   
@@ -345,12 +345,14 @@ ip=Register8.new(7)
 #port0(0) is LED port0(1) is a button
 
 mov r4, 1
-mov r5, 0x01 #the port bitmask
+mov r5, 0xFD
+#mov r5, 0x01 #the port bitmask
 mov [r4],r5
 mov r3, 0
+mov [r3], 0
 mov r2, 0x02
 #poll for button
-label :loop
+new_label :loop
 mov r0, [r3]
 and_ r0, r2 #isolate just the button at pin 2
 cmpneq r0, 0

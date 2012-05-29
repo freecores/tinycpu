@@ -81,7 +81,7 @@ begin
     end if;
   end process;
   
-  assignram: process (we, datawrite, addr, r1out, port0, WriteEnable, Address, Clock)
+  assignram: process (we, datawrite, addr, r1out, port0, WriteEnable, Address, Clock, port0temp, port0we, DataIn)
   variable tmp: integer;
   variable tmp2: integer;
   variable found: boolean := false;
@@ -92,35 +92,45 @@ begin
       if rising_edge(Clock) then
         if WriteWord='0' then
           if tmp2=0 then
-            dataread <= x"0000";
+            --dataread <= x"0000";
             
             gen: for I in 0 to 7 loop
               if WriteEnable='1' then
                 if port0we(I)='1' then --1-bit port set to WRITE mode
-                  port0(I) <= DataIn(I);
+                  
+                  Port0(I) <= DataIn(I);
+                  if I=0 then
+                   -- report string(DataIn(I));
+                    --assert(DataIn(I)='1') report "XXXXX" severity note;
+                    --port0(I) <= '1';
+                  end if;
                   port0temp(I) <= DataIn(I);
+                  --dataread(I) <= DataIn(I);
                 else
                   port0(I) <= 'Z';
+                  port0temp(I) <= '0';
+                  --dataread(I) <= port0(I);
                 end if;
               else --not WE
                 if port0we(I)='0' then --1-bit-port set to READ mode
-                  dataread(I) <= port0(I);
+                  --dataread(I) <= port0(I);
                 else
-                  dataread(I) <= port0temp(I);
+                  --dataread(I) <= port0temp(I);
                 end if;
               end if;
             end loop gen;
           elsif tmp2=1 then
-            dataread <= x"00" & port0we;
+            --dataread <= x"00" & port0we;
             if WriteEnable='1' then
               port0we <= DataIn(7 downto 0);
+              --dataread<=x"00" & DataIn(7 downto 0);
               setwe: for I in 0 to 7 loop
                 if DataIn(I)='0' then
                   port0(I) <= 'Z';
                 end if;
               end loop setwe;
             else
-              dataread <= x"00" & port0we;
+              --dataread <= x"00" & port0we;
             end if;
           else
             --synthesis off
@@ -134,6 +144,28 @@ begin
           --synthesis on
         end if;
       end if;
+      dataread <= x"0000";
+      outgen: for I in 0 to 7 loop
+        if tmp2=0 then
+          if port0we(I)='1' then
+            if WriteEnable='1' then
+              dataread(I) <= DataIn(I);
+            else
+              dataread(I) <= port0temp(I);
+            end if;
+          else
+            dataread(I) <= port0(I);
+          end if;
+        elsif tmp2=0 then
+          if WriteEnable='1' then
+            dataread(I) <= DataIn(I);
+          else
+            dataread(I) <= port0we(I);
+          end if;
+        else
+          dataread(I) <= '0';
+        end if;
+      end loop outgen;
       R1en <= '0';
       R1we <= "00";
       R1in <= x"0000";
@@ -157,10 +189,14 @@ begin
 
   readdata: process(Address, dataread)
   begin
-    if Address(0) = '0' then
-      DataOut <= dataread;
+    if to_integer(unsigned(Address))>15 then
+      if Address(0) = '0' then
+        DataOut <= dataread;
+      else
+        DataOut <= x"00" & dataread(15 downto 8);
+      end if;
     else
-      DataOut <= x"00" & dataread(15 downto 8);
+      DataOut <= x"00" & dataread(7 downto 0);
     end if;
   end process;
 end Behavioral;

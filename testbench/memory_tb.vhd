@@ -118,7 +118,28 @@ BEGIN
     WriteEnable <= '0';
     wait for 10 ns;
     assert (DataOut = x"5678") report "aligned 8-bit memory write is wrong" severity error;
+    
+    Address <= x"0001";
+    Port0 <= "ZZZZZZ1Z";
+    WriteWord<='0';
+    WriteEnable <= '1';
+    DataIn <= x"0001";
+    wait for 10 ns;
+    WriteEnable <= '0';
+    Address <= x"1234";
+    wait for 20 ns;
+    WriteEnable <= '1';
+    Address <= x"0000";
+    DataIn <= x"0001";
+    
+    wait for 10 ns;
+    WriteEnable <= '0';
+    assert(Port0(0)='1') report "port0 not right 1" severity error;
+    wait for 10 ns;
+    assert(DataOut(1)='1') report "port0 not right 2" severity error;
 
+
+    wait for 10 ns;
     Address <= x"0001";
     WriteWord <= '0';
     WriteEnable <= '1';

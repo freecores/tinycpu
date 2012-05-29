@@ -70,6 +70,7 @@ BEGIN
   stim_proc: process
     variable err_cnt: integer :=0;
   begin         
+    Port0 <= "ZZZZZZZZ";
     -- hold reset state for 100 ns.
     Reset <= '0';
     wait for 10 ns;
@@ -78,11 +79,11 @@ BEGIN
     Reset <= '0';
     wait for 50 ns;
     Port0(1) <= '1';
-    wait for 100 ns;
+    wait for 200 ns;
     assert(Port0(0)='1') report "Toggle app not working" severity error;
     wait for 10 ns;
-    Port0(0) <= '0';
-    wait for 100 ns;
+    Port0(1) <= '0';
+    wait for 200 ns;
     assert(Port0(0)='0') report "Toggle app not working 2" severity error;
 
 
